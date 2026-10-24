@@ -34,6 +34,9 @@ worktree and implements commit by commit, each with its own
 focused test; the heavy verification runs once at the end, a subagent reviews the diff, you
 pick which findings get fixed, and a draft PR opens.
 
+<img width="75%" height="1488" alt="image" src="https://github.com/user-attachments/assets/88391882-0353-4c17-b66a-71acc85aa944" />
+
+
 ## Install
 
 In a terminal Claude Code session:
