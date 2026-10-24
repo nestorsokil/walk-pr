@@ -160,7 +160,7 @@ export const register: Register = (on, options) => {
               isFinished: { type: 'boolean' },
               diagram: {
                 type: 'object',
-                description: 'a rendered PNG of the stage diagram, drawn in the pane on a terminal that shows images; file is an absolute path, rows = ceil(columns / (2 * width / height)), generation bumps when the file changes under the same path',
+                description: 'a rendered PNG of the stage diagram, drawn in the pane on a terminal that shows images, scaled up to the pane width; file is an absolute path, rows = ceil(columns / (2 * width / height)), generation bumps when the file changes under the same path',
                 properties: {
                   file: { type: 'string' },
                   alt: { type: 'string' },
@@ -309,13 +309,18 @@ export const register: Register = (on, options) => {
       }
       const { Image } = $.ui.resolve(e)
       const d = state.diagram
+      // Image columns cap at 255; rows keep the aspect the skill computed for its own columns.
+      const bodyColumns = (e.props as { bodyColumns?: number }).bodyColumns ?? 0
+      const wanted = d.columns ?? 60
+      const columns = Math.max(wanted, Math.min(255, bodyColumns - 2))
+      const rows = Math.max(1, Math.round((d.rows ?? 14) * (columns / wanted)))
 
       return (
         <Image
           key="diagram"
           source={{ file: d.file, format: 'png', generation: d.generation }}
-          columns={d.columns ?? 60}
-          rows={d.rows ?? 14}
+          columns={columns}
+          rows={rows}
           alt={d.alt}
         />
       )
