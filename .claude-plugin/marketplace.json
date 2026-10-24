@@ -1,0 +1,12 @@
+{
+  "name": "walk-pr",
+  "owner": {
+    "name": "Nestor Sokil"
+  },
+  "plugins": [
+    {
+      "name": "walk-pr",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "walk-pr",
+  "version": "0.13.2",
+  "description": "Stage-by-stage guided PR tour with a one-click side pane: problem and approach diagrams, concept stages, findings you decide on, one review posted at the end. The same pane plans and implements a change: decisions with options, commit-by-commit run, draft PR",
+  "author": {
+    "name": "Nestor Sokil"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "paneBackground": {
+      "title": "Pane background",
+      "description": "Colour painted behind the pane in a terminal: a hex like #253439, or a theme key that follows your theme (subtle, inactive, promptBorder). Empty keeps the terminal's own pane colour.",
+      "type": "string",
+      "default": "",
+      "sensitive": false
+    }
+  }
+}
