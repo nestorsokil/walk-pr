@@ -11,8 +11,8 @@ or Comment, posting the findings you raised as line comments in that review. The
 on the outcome; Resume tour re-reads the PR for new commits and comments.
 
 <p>
-  <img width="49%" height="1429" alt="image" src="https://github.com/user-attachments/assets/a47b589c-f370-4b97-8658-f037a3e9aeb3" /> 
-  <img width="49%" height="2028" alt="image" src="https://github.com/user-attachments/assets/d3758c11-6a5e-42e5-b487-d45b360d976d" />
+  <img width="49%" height="1522" alt="image" src="https://github.com/user-attachments/assets/84100540-bfb8-4881-9838-e8c1e569e4fb" />
+  <img width="49%" height="1522" alt="image" src="https://github.com/user-attachments/assets/9a87cdc3-5559-4871-adb1-0f9771f83695" />
 
 </p>
 
