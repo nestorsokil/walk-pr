@@ -3,6 +3,10 @@
 A Claude Code plugin that walks you through a pull request stage by stage, with a side pane you
 drive by clicking.
 
+```
+/walk-pr:tour <PR number, PR URL, branch, or nothing for the current diff>
+```
+
 The tour opens with a verdict and a stage menu. It explains the problem and the approach with
 diagrams, then each important part of the change in prose with the decisive code lines, one
 to three short snippets per stage. It
