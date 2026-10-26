@@ -209,8 +209,9 @@ sends the opposite decision. The location line names the stage, not a number.
 
 Read-only. Rendered once at Phase 2, before the menu. Top-down: a chip row (kind, CI,
 dependencies), the verdict line, the services-touched row, before and after in one box each,
-the "What this PR includes" list (one bullet per concept stage, in menu order, Problem and
-Solution left out), the high-level diagram of the change (an inline SVG per template 2, at most 6 nodes, inside the
+the "What this PR includes" inventory (one numbered item per concept stage in menu order with
+its concrete thing named, then Wiring, Docs and Tests when present), the high-level diagram
+of the change (an inline SVG per template 2, at most 6 nodes, inside the
 card), and the colour legend under it. Without the pane, the stage strip (area colour, one
 clause each) sits between the verdict and the services row. No findings, no buttons; the pane or
 template 1 carries the menu.
@@ -272,7 +273,8 @@ before/after boxes.
 .wf-ba>div{padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.45}
 .wf-ba b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
 .wf-inc{margin:0 0 14px;padding:0 0 0 18px;font-size:13px;line-height:1.5}
-.wf-inc li{margin:0 0 2px}
+.wf-inc li{margin:0 0 3px}
+.wf-inc code{font-size:12px;padding:0 4px;border-radius:3px;background:var(--surface-1)}
 .wf-legend{display:flex;gap:16px;font-size:12px;color:var(--text-secondary);margin:4px 0 0}
 .wf-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:0.5px solid}
 .wf-legend .lg-gray{background:#F1F0EC;border-color:#888780}.wf-legend .lg-purple{background:#EEEDFE;border-color:#7F77DD}.wf-legend .lg-coral{background:#FAECE7;border-color:#D85A30}
@@ -293,11 +295,14 @@ before/after boxes.
   <div><b>After</b>The save is refused and a dropped alert increments a counter.</div>
 </div>
 <div class="wf-label">What this PR includes</div>
-<ul class="wf-inc">
-  <li><b>Count the give-ups</b>: a dropped alert becomes a failed delivery the operator can see.</li>
-  <li><b>Reject bad keys</b>: a channel config the sender cannot read is refused when saved.</li>
-  <li><b>Repair production</b>: channels already saved with a bad key are fixed in place.</li>
-</ul>
+<ol class="wf-inc">
+  <li><b>A failed-delivery counter</b> in the alert sender. A notification dropped for a config the sender cannot read now increments <code>notifications_failed_total</code> per channel and writes a failed-delivery record.</li>
+  <li><b>Strict key validation</b> on <code>PUT /channels/{id}</code>. A config key that matches a field only case-insensitively is rejected with 400 and the accepted names.</li>
+  <li><b>A backfill migration</b> that rewrites the keys of channels already saved with the wrong case.</li>
+  <li><b>Wiring:</b> the metric registration, the repository mock and the ownership file.</li>
+  <li><b>Docs:</b> the channel configuration page.</li>
+  <li><b>Tests</b> for all of the above.</li>
+</ol>
 <!-- the change diagram (template 2, at most 6 nodes) goes here -->
 <div class="wf-legend"><span><i class="lg-gray"></i>Existing, unchanged</span><span><i class="lg-purple"></i>New or changed in this PR</span><span><i class="lg-coral"></i>Removed or faulty</span></div>
 ```
