@@ -209,7 +209,8 @@ sends the opposite decision. The location line names the stage, not a number.
 
 Read-only. Rendered once at Phase 2, before the menu. Top-down: a chip row (kind, CI,
 dependencies), the verdict line, the services-touched row, before and after in one box each,
-the high-level diagram of the change (an inline SVG per template 2, at most 6 nodes, inside the
+the "What this PR includes" list (one bullet per concept stage, in menu order, Problem and
+Solution left out), the high-level diagram of the change (an inline SVG per template 2, at most 6 nodes, inside the
 card), and the colour legend under it. Without the pane, the stage strip (area colour, one
 clause each) sits between the verdict and the services row. No findings, no buttons; the pane or
 template 1 carries the menu.
@@ -270,6 +271,8 @@ before/after boxes.
 .wf-ba{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
 .wf-ba>div{padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.45}
 .wf-ba b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
+.wf-inc{margin:0 0 14px;padding:0 0 0 18px;font-size:13px;line-height:1.5}
+.wf-inc li{margin:0 0 2px}
 .wf-legend{display:flex;gap:16px;font-size:12px;color:var(--text-secondary);margin:4px 0 0}
 .wf-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:0.5px solid}
 .wf-legend .lg-gray{background:#F1F0EC;border-color:#888780}.wf-legend .lg-purple{background:#EEEDFE;border-color:#7F77DD}.wf-legend .lg-coral{background:#FAECE7;border-color:#D85A30}
@@ -289,6 +292,12 @@ before/after boxes.
   <div><b>Before</b>A bad key saved fine and every alert to it vanished silently.</div>
   <div><b>After</b>The save is refused and a dropped alert increments a counter.</div>
 </div>
+<div class="wf-label">What this PR includes</div>
+<ul class="wf-inc">
+  <li><b>Count the give-ups</b>: a dropped alert becomes a failed delivery the operator can see.</li>
+  <li><b>Reject bad keys</b>: a channel config the sender cannot read is refused when saved.</li>
+  <li><b>Repair production</b>: channels already saved with a bad key are fixed in place.</li>
+</ul>
 <!-- the change diagram (template 2, at most 6 nodes) goes here -->
 <div class="wf-legend"><span><i class="lg-gray"></i>Existing, unchanged</span><span><i class="lg-purple"></i>New or changed in this PR</span><span><i class="lg-coral"></i>Removed or faulty</span></div>
 ```

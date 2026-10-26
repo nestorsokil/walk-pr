@@ -202,18 +202,23 @@ card), then at most two sentences of text. The card carries, top-down:
    box.
 3. Before and after, one box each: what a user or operator saw before and gets after this PR,
    in product words. No component names.
-4. A high-level diagram of the change: the parts it touches as areas, at most 6 nodes, one
+4. **What this PR includes**: a bullet list with exactly one bullet per concept stage, in the
+   menu's order, Problem and Solution left out. Each bullet is the stage name in bold, then
+   one clause in product words on what that part does for the reader ("**Count the
+   give-ups**: a dropped alert becomes a failed delivery the operator can see"). The list and
+   the pane's stage menu name the same parts; nothing appears in one and not the other.
+5. A high-level diagram of the change: the parts it touches as areas, at most 6 nodes, one
    input through them. Node colour is the legend: gray for existing and unchanged, purple for
    new or changed in this PR, coral for removed or faulty. The legend row sits under the
    diagram, always, even when only one colour is used. Picked by "Which diagram" on the whole
    PR; a decision table when that is what the PR is.
-5. Without the pane only: the stage strip with one clause per stage. With the pane the stages
+6. Without the pane only: the stage strip with one clause per stage. With the pane the stages
    are already on screen, so the card leaves them out.
 
 No mechanism, no identifiers, no file or field names, no ticket history. The reader has not seen
 the problem yet; everything the card says is explained again in Problem and Approach. On a
-terminal, the card is a Markdown table (Before | After) plus the diagram rendered into the
-pane.
+terminal, the card is a Markdown table (Before | After), the "What this PR includes" list, and
+the diagram rendered into the pane.
 
 Too dense:
 
