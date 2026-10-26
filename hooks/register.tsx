@@ -118,7 +118,7 @@ export const register: Register = (on, options) => {
                     n: { type: 'integer' },
                     label: { type: 'string' },
                     text: { type: 'string' },
-                    where: { type: 'string' },
+                    where: { type: 'string', description: 'file path and line at the head, "path:line"; with a PR url the pane links it to that line in the PR diff' },
                     decision: { type: 'string', enum: ['later', 'raise', 'drop'] },
                     options: {
                       type: 'array',
@@ -361,6 +361,31 @@ export const register: Register = (on, options) => {
           : $.process.run(openers[i], { timeoutMs: 5000 }).then(r => (r.exitCode === 0 ? r : tryNext(i + 1)), () => tryNext(i + 1))
       void tryNext(0)
     }
+    // GitHub anchors a PR diff file by the sha256 of its path; R<n> is the line on the head side.
+    const diffAnchor = async (prUrl: string, where: string): Promise<string | undefined> => {
+      if (!/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(prUrl)) {
+        return undefined
+      }
+      const m = /([^\s:()`]+\/[^\s:()`]+|[^\s:()`]+\.[A-Za-z0-9]+)(?::(\d+))?/.exec(where)
+      if (!m) {
+        return undefined
+      }
+      const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(m[1]))
+      const hex = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('')
+      return `${prUrl.replace(/\/?$/, '')}/files#diff-${hex}${m[2] ? `R${m[2]}` : ''}`
+    }
+    const whereUrls = new Map<number, string>()
+    if (state?.url) {
+      const prUrl = state.url
+      await Promise.all(
+        state.findings.map(async f => {
+          const u = await diffAnchor(prUrl, f.where)
+          if (u) {
+            whereUrls.set(f.n, u)
+          }
+        }),
+      )
+    }
     const fill = (text: string) => () => {
       void $.prompt.fill({ text, mode: 'replace' }).then(r => (r.isFilled ? undefined : $.ui.toast(text)))
     }
@@ -570,7 +595,13 @@ export const register: Register = (on, options) => {
                     )}
                   </Box>
                   <Text dimColor={f.decision === 'drop'}>{f.text}</Text>
-                  <Text dimColor italic>{f.where}</Text>
+                  {whereUrls.has(f.n) ? (
+                    <Button key={`where:${f.n}`} dimColor onPress={openUrl(whereUrls.get(f.n)!)}>
+                      {f.where}
+                    </Button>
+                  ) : (
+                    <Text dimColor italic>{f.where}</Text>
+                  )}
                   {f.options && (
                     <Box flexDirection="column" marginTop={1}>
                       {f.options.map((o, i) => (
