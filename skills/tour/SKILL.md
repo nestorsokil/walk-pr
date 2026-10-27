@@ -540,11 +540,17 @@ already shows every finding with its comment, and the reader has seen the stages
    After the outcome, Raise on a finding that was never posted and the Post raised button send
    `review comment` again: post one COMMENT review with only the findings not yet posted, then
    `set` with those marked `posted` and the outcome unchanged.
+   After the outcome, `review approve` (the pane's Approve button, shown while the outcome is
+   not Approved, Merged or Closed) posts one APPROVE review without a resume: `comments` = the
+   raised findings not yet posted, `body` one or two sentences in the reviewer's voice saying
+   what was covered and that the earlier comments were addressed, naming any posted finding
+   that still has no `resolution` as left open. Then step 5 with `outcome.label` "Approved".
 5. After posting, or on `done`, the pane stays. Call `set` with the whole tour, `isFinished:
    true`, `prompts: []`, and `outcome`: `label` one of "Approved", "Changes requested",
    "Commented", "Closed without posting", and `url` = the review link when one was posted. The
-   pane then shows the outcome, the findings read-only, and two buttons: Resume tour and Check
-   PR for updates. Never clear the pane at the finish.
+   pane then shows the outcome, the findings read-only, and the buttons Resume tour, Check PR
+   for updates and, unless the label is Approved, Merged or Closed, Approve (primary once every
+   posted finding is fixed or its thread resolved). Never clear the pane at the finish.
 
 ## Resume and refresh
 

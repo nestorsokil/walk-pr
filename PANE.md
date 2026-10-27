@@ -32,7 +32,7 @@ Open plan button; the finish draws Approve plan, Revise plan (fills the composer
 
 Note: on the desktop app a `plain` Button needs a focusing click before it presses, so every
 button here is a real one.
-- `walk-pr: resume`, `walk-pr: refresh` (after the outcome is shown)
+- `walk-pr: resume`, `walk-pr: refresh`, `walk-pr: review approve` (after the outcome is shown; Approve stays until the outcome is Approved, Merged or Closed)
 
 Known host limit: after switching to another session and back, the first click in the pane only
 focuses its web view and is swallowed; the mod receives no event for it. Clicks within one session

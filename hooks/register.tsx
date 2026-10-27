@@ -172,7 +172,7 @@ export const register: Register = (on, options) => {
               },
               outcome: {
                 type: 'object',
-                description: 'set after the review was posted or the tour closed; the pane then shows it with Resume tour and Check PR for updates',
+                description: 'set after the review was posted or the tour closed; the pane then shows it with Resume tour, Check PR for updates and, unless the label is Approved, Merged or Closed, Approve',
                 properties: { label: { type: 'string' }, url: { type: 'string' } },
                 required: ['label'],
               },
@@ -428,6 +428,10 @@ export const register: Register = (on, options) => {
     const unseen = state.stages.filter(s => s.state !== 'done')
     const busy = state.isBusy === true
     const closed = state.outcome !== undefined
+    const canApproveAfterOutcome = closed && !['Approved', 'Merged', 'Closed'].includes(state.outcome!.label)
+    const allAddressed = state.findings
+      .filter(f => f.posted || f.decision === 'raise')
+      .every(f => f.resolution === 'fixed' || f.thread?.isResolved)
     const isBuild = state.mode === 'build'
     const undecided = state.findings.filter(f => f.options && f.chosen === undefined)
     // in build mode Raise means fix it and Drop means leave it
@@ -753,6 +757,13 @@ export const register: Register = (on, options) => {
             <Button key="post-raised" variant="primary" onPress={send('walk-pr: review comment')}>
               Post raised
             </Button>
+          )}
+          {closed && !isBuild && canApproveAfterOutcome && (
+            <Box borderStyle="round" borderColor="success" padding={0}>
+              <Button key="approve-after" variant={allAddressed ? 'primary' : 'secondary'} onPress={send('walk-pr: review approve')}>
+                Approve
+              </Button>
+            </Box>
           )}
           {state.isFinished && !closed && isBuild && (
             <Box borderStyle="round" borderColor="success" padding={0}>
