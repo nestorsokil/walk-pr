@@ -70,11 +70,17 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
      the nearest ancestor directory that is a build unit (holds a `go.mod`, `package.json`,
      `Cargo.toml`, `pom.xml`, `pyproject.toml`, or is a workspace member) below the repository
      root; a single-unit repository groups by top-level directory; anything else is `repo`.
-     Per group: added, deleted, and the share of changed lines outside test files. A test
-     file is what the repository's guidance (`CLAUDE.md`, `AGENTS.md`, the module's README)
-     or its test runner config says one is; without that, the language's usual patterns
-     (`_test.`, `.test.`, `.spec.`, `__tests__/`, `/test/`, `/tests/`, `/testdata/`,
-     `/fixtures/`).
+     Per group: added, deleted, and the split of changed lines (added plus deleted, from
+     `gh pr diff <n>`) into three shares that sum to 100%:
+     - **tests**: every changed line in a test file. A test file is what the repository's
+       guidance (`CLAUDE.md`, `AGENTS.md`, the module's README) or its test runner config
+       says one is; without that, the language's usual patterns (`_test.`, `.test.`,
+       `.spec.`, `__tests__/`, `/test/`, `/tests/`, `/testdata/`, `/fixtures/`).
+     - **comments**: in the other files, a changed line whose content after the `+`/`-`
+       and whitespace is a comment (`//`, `#`, `/*`, `*`, `*/`, `--`, `<!--`, `"""`, `'''`,
+       `///`, `--[[`, a doc-comment tag) or blank, plus every changed line of a
+       documentation file (`.md`, `.mdx`, `.rst`, `.txt`, `/docs/`).
+     - **code**: the rest.
    - **State**: `gh pr view <n> --json isDraft,state,reviewDecision,mergeable`: one of
      **Draft**, **Ready**, **Approved**, **Changes requested**, **Merged**, **Closed**; add
      **Conflicts** when `mergeable` is `CONFLICTING`.
@@ -197,9 +203,11 @@ card), then at most two sentences of text. The card carries, top-down:
 2. **Services touched**: one box per service from step 3, each in its own colour, width
    proportional to the square root of its changed lines with a floor of 15% of the row, so a
    12-line service still reads. Each box shows `+added` in green and `−deleted` in coral and a
-   bottom strip filled to the share of changed lines outside test files, with the percentage
-   or "all code". Boxes sorted by changed lines, at most 6; fold the rest into one `other`
-   box.
+   bottom strip split into three segments, left to right: code (solid), tests (hatched),
+   comments (dotted), each as wide as its share from step 3, with the percentages as the
+   box's last line (`62% code · 30% tests · 8% comments`; a share of 0 is left out, a share
+   of 100 reads `all code`). Boxes sorted by changed lines, at most 6; fold the rest into one
+   `other` box. Under the row, one line with the same split for the whole PR.
 3. Before and after, one box each: what a user or operator saw before and gets after this PR,
    in product words. No component names.
 4. **What this PR includes**: the inventory of the change, as a numbered list, so the reader

@@ -220,7 +220,9 @@ Services row: `flex` is the square root of the service's changed lines, floored 
 row, so one box never dwarfs the rest. Every box keeps `min-width:0`, `flex-basis:0` and
 `box-sizing:border-box`, and nothing in the row gets a fixed width or margin, so the last box
 never runs past the card edge; a long name truncates with an ellipsis. One background per service from the palette below. The
-bottom strip's filled width is the share of changed lines outside test files.
+bottom strip holds three segments, code then tests then comments, each as wide as its share
+of the service's changed lines; the `em` line under the counts prints the same shares. The
+note under the row repeats the split for the whole PR.
 
 | service palette | background | text |
 | --- | --- | --- |
@@ -259,16 +261,22 @@ before/after boxes.
 [data-mode=dark] .wf-top .ci-run{color:#F3DDA6;border-color:#6B4A12}
 .wf-verdict{font-size:15px;font-weight:500;margin:0 0 12px}
 .wf-label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 6px}
-.wf-svc{display:flex;gap:6px;margin:0 0 6px;height:58px;width:100%;box-sizing:border-box;overflow:hidden}
+.wf-svc{display:flex;gap:6px;margin:0 0 6px;height:68px;width:100%;box-sizing:border-box;overflow:hidden}
 .wf-svc>div{position:relative;min-width:0;flex-basis:0;box-sizing:border-box;border-radius:var(--radius);padding:6px 10px 0;font-size:13px;line-height:1.3;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .wf-svc b{display:block;font-weight:500}
 .wf-svc span{font-size:12px}
 .wf-svc .add{color:#5FD79A}.wf-svc .del{color:#F28B6C}
-.wf-svc .bar{position:absolute;left:0;right:0;bottom:0;height:12px;background:rgba(0,0,0,.35)}
-.wf-svc .bar i{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.55)}
-.wf-svc .bar em{position:absolute;right:6px;top:-1px;font-style:normal;font-size:10px;color:rgba(255,255,255,.85)}
-.wf-note{font-size:12px;color:var(--text-secondary);margin:0 0 14px}
-.wf-note i{display:inline-block;width:12px;height:6px;background:rgba(128,128,128,.55);border:0.5px solid var(--border);vertical-align:middle;margin-right:5px}
+.wf-svc .bar{position:absolute;left:0;right:0;bottom:0;height:7px;display:flex;background:rgba(0,0,0,.35)}
+.wf-svc .bar i{display:block;height:100%}
+.wf-svc .bar .code{background:rgba(255,255,255,.6)}
+.wf-svc .bar .tests{background:repeating-linear-gradient(135deg,rgba(255,255,255,.55) 0 3px,transparent 3px 6px)}
+.wf-svc .bar .comments{background:radial-gradient(rgba(255,255,255,.6) 1px,transparent 1.2px) 0 0/4px 4px}
+.wf-svc em{display:block;font-style:normal;font-size:10px;opacity:.85;margin:2px 0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wf-note{font-size:12px;color:var(--text-secondary);margin:0 0 14px;display:flex;gap:14px;flex-wrap:wrap}
+.wf-note i{display:inline-block;width:14px;height:7px;vertical-align:middle;margin-right:5px;border:0.5px solid var(--border)}
+.wf-note .code{background:rgba(128,128,128,.6)}
+.wf-note .tests{background:repeating-linear-gradient(135deg,rgba(128,128,128,.7) 0 3px,transparent 3px 6px)}
+.wf-note .comments{background:radial-gradient(rgba(128,128,128,.8) 1px,transparent 1.2px) 0 0/4px 4px}
 .wf-ba{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
 .wf-ba>div{padding:8px 10px;border:0.5px solid var(--border);border-radius:var(--radius);font-size:13px;line-height:1.45}
 .wf-ba b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 2px}
@@ -285,11 +293,11 @@ before/after boxes.
 <div class="wf-verdict">Sound fix at the cause. 1 finding worth raising.</div>
 <div class="wf-label">Services touched</div>
 <div class="wf-svc">
-  <div style="flex:52;background:#3C3489;color:#CECBF6"><b>settings-api</b><span class="add">+780</span> <span class="del">−120</span><div class="bar"><i style="width:38%"></i><em>38% code</em></div></div>
-  <div style="flex:18;background:#0F5A4B;color:#BFECD9"><b>attributes</b><span class="add">+40</span> <span class="del">−0</span><div class="bar"><i style="width:100%"></i><em>all code</em></div></div>
-  <div style="flex:15;background:#1E4C78;color:#C6E0F7"><b>notifier</b><span class="add">+12</span> <span class="del">−17</span><div class="bar"><i style="width:52%"></i><em>52%</em></div></div>
+  <div style="flex:52;background:#3C3489;color:#CECBF6"><b>settings-api</b><span class="add">+780</span> <span class="del">−120</span><em>38% code · 55% tests · 7% comments</em><div class="bar"><i class="code" style="width:38%"></i><i class="tests" style="width:55%"></i><i class="comments" style="width:7%"></i></div></div>
+  <div style="flex:18;background:#0F5A4B;color:#BFECD9"><b>attributes</b><span class="add">+40</span> <span class="del">−0</span><em>all code</em><div class="bar"><i class="code" style="width:100%"></i></div></div>
+  <div style="flex:15;background:#1E4C78;color:#C6E0F7"><b>notifier</b><span class="add">+12</span> <span class="del">−17</span><em>52% code · 48% tests</em><div class="bar"><i class="code" style="width:52%"></i><i class="tests" style="width:48%"></i></div></div>
 </div>
-<div class="wf-note"><i></i>share of changed lines outside test files</div>
+<div class="wf-note"><span><i class="code"></i>code 43%</span><span><i class="tests"></i>tests 50%</span><span><i class="comments"></i>comments 7%</span><span>of 969 changed lines</span></div>
 <div class="wf-ba">
   <div><b>Before</b>A bad key saved fine and every alert to it vanished silently.</div>
   <div><b>After</b>The save is refused and a dropped alert increments a counter.</div>
