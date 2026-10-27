@@ -43,7 +43,7 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
    that fits and keep what it says for the Problem and Approach stages: a ticket through the
    tracker's tools, a `claude.ai/artifact` link through the Artifact tool's `read` action, a
    chat permalink through that chat's tools, anything else through `WebFetch`; a link no tool
-   can read is still listed. Record them in the scratch file, then pick the pane's `links`, at
+   can read is still listed. Record them in the tour file, then pick the pane's `links`, at
    most three, in this order: the ticket (label the ID), a Claude artifact (label
    "Artifact"), one more by usefulness for a reviewer (label by kind: "ADR", "Design doc",
    "Chat thread", "Dashboard"). A related PR is labelled by its relation from step 3, never
@@ -95,7 +95,7 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
    flows through it, and what the user or operator sees.
 5. Review, in a fixed walk so two runs on the same head land on the same findings. Findings
    are cached by head SHA and base SHA (`git rev-parse` of the head ref and of
-   `origin/<baseRefName>`, or the merge-base for a branch target): when the scratch file
+   `origin/<baseRefName>`, or the merge-base for a branch target): when the tour file
    (step 6) already holds a review for this pair, reuse it and skip this step. A new head
    with the same base reviews only the hunks that changed and re-checks the cached findings
    against the new code. A moved base (a rebase, or the base branch moved under the PR) redoes step 4
@@ -110,7 +110,7 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
      `gh pr view <n> --json reviews,comments` (review bodies and PR comments). Keep the open
      line threads by path and line range.
    - List the changed files without the diff body (`gh pr view <n> --json files` or
-     `git diff --name-only`), in diff order, and record the list in the scratch file. Walk it
+     `git diff --name-only`), in diff order, and record the list in the tour file. Walk it
      file by file. For each file: read its diff, read the surrounding code at the head, run
      the repository review skill's checks and patterns that apply, then write `clean` or its findings against
      the file before opening the next one. Generated, lock and vendor files get `skipped`.
@@ -142,15 +142,21 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
      a reply in that thread. A thread the author already resolved is not a finding unless the
      code still shows the defect; then it is a new finding whose comment names the thread.
    Record each finding with its file, line, label, evidence, and decision `later`.
-6. Build the tour and write it to `<scratchpad>/walk-pr-<id>.md` (`<id>` is the PR number or the
-   branch name). The file holds the target and refs, the head and base commit SHAs the tour
+6. Build the tour and write it to the tour file. For a PR target that is
+   `~/.claude/walk-pr/tours/<owner>-<repo>-<n>.md` (create the directory), a cache shared by
+   every session, so a tour built in one session, by a scheduled run for instance, opens in
+   any other session that names the same PR. For a branch, current diff or patch target it is
+   `<scratchpad>/walk-pr-<id>.md` (`<id>` is the branch name or `diff`). The file holds the
+   target and refs, when and by which session it was built, the head and base commit SHAs the tour
    was built from, the PR's comment count, the kind, the file walk from step 5 with its per-file result
    and the lens answers, the stage list with each stage's files and line
    ranges, every finding with its evidence and decision, the code-line budget used, and a status per stage
    (`pending`, `current`, `done`, `skipped`). Update it after every checkpoint. On invocation,
-   when that file already exists, run "Resume" below instead of a new gather. When the file is
-   missing but this conversation already holds the tour (a forked tour session), rewrite the
-   file from the conversation, then run "Resume"; never gather again.
+   when that file already exists, run "Resume" below instead of a new gather; when it was built
+   by another session, say so in the one line before resuming ("Tour built 09:41 by the inbox
+   run; resuming"). When the file is missing but this conversation already holds the tour (a
+   forked tour session), rewrite the file from the conversation, then run "Resume"; never
+   gather again.
    - Group hunks into concepts. One concept per stage, never one file per stage. A concept is a
      responsibility the reader can name without code: "the new endpoint", "the retry policy",
      "the cache key".
@@ -254,7 +260,7 @@ Right level:
 Then wait. Problem and Approach always exist and come first in the plan, but the reader goes
 wherever they click: a concept row jumps straight there, Finish goes straight to the finish, and
 the stages passed over are `skipped`. Free text re-plans ("3 and 5", "skip 2", "only the API
-part"); record the chosen order in the scratch file. The reader may re-plan at any later
+part"); record the chosen order in the tour file. The reader may re-plan at any later
 checkpoint the same way.
 
 ## Voice
@@ -347,7 +353,7 @@ Code rules:
   or holds a finding whose lines the reader should see before deciding. Never more than three.
 - A snippet is the decisive lines only, 3 to 15 of them, trimmed to the part the prose talks
   about, with `...` where lines are cut. A whole function is never a snippet. The whole tour
-  stays under about 120 lines; track the count in the scratch file.
+  stays under about 120 lines; track the count in the tour file.
 - Prose still carries the explanation: a snippet follows the sentence it illustrates, never
   replaces it. Describe the rest of the logic in words: conditions, ordering, defaults, limits.
 - A snippet is copied from the file, never paraphrased, and carries a clickable reference:
@@ -401,9 +407,9 @@ change. Never advance on your own, never answer a click that has not arrived.
 
 With the pane, Raise and Drop are handled inside the pane with no message; the decisions made
 since the last `set` ride along on the next navigation click as a suffix, `(findings: 1 raise,
-3 drop)`. Record them in the scratch file when that message arrives, then act on the click. A
+3 drop)`. Record them in the tour file when that message arrives, then act on the click. A
 typed message carries the same decisions as hidden context ("walk-pr pane decisions since the
-last set: …"); record those too, and send them back in the next `set`. The scratch file is the
+last set: …"); record those too, and send them back in the next `set`. The tour file is the
 record: every `set` carries each finding's decision as recorded there, and a `finding <n> later`
 from the reader resets it. The pane locks itself after a
 navigation click and unlocks on the next `set` call, so every stage message, and every answer to a
@@ -447,7 +453,7 @@ on the base. Then one of three outcomes, each confirmed in one line:
 - **Holds**: a finding with the next free `n`, a label (`issue`, `question`, `suggestion`,
   `nitpick`, `pre-existing`; the evidence decides, not the wording), `where` as file and line,
   decision `later` unless the reader says to raise it, attached to the current stage. Write it
-  to the scratch file, bump that stage's `concerns` and `severe` or `minor` (neither for
+  to the tour file, bump that stage's `concerns` and `severe` or `minor` (neither for
   `pre-existing`), include it in the next `set`. "Confirmed, recorded as finding 5 (issue): <one clause of evidence>."
 - **Does not hold**: say why in at most two sentences with the line that settles it, record
   nothing. The reader can insist ("record it anyway"), which records it as `question`.
@@ -528,7 +534,7 @@ already shows every finding with its comment, and the reader has seen the stages
    Report with a short brief: the verdict, the review link, and one line per posted comment
    (finding label, where, first clause). Then list the review's comments
    (`gh api repos/{owner}/{repo}/pulls/<n>/comments --jq '.[] | select(.pull_request_review_id == <review id>) | {id, path, line}'`)
-   and record each finding's comment id and `posted: true` in the scratch file. No PR (branch,
+   and record each finding's comment id and `posted: true` in the tour file. No PR (branch,
    current diff, patch): write the list to `<scratchpad>/walk-pr-<id>-review.md` and say where
    it is.
    After the outcome, Raise on a finding that was never posted and the Post raised button send
@@ -542,7 +548,7 @@ already shows every finding with its comment, and the reader has seen the stages
 
 ## Resume and refresh
 
-Both start by re-reading the PR against the scratch file: `gh pr view <n> --json
+Both start by re-reading the PR against the tour file: `gh pr view <n> --json
 state,mergedAt,mergeCommit,headRefOid,comments,reviews,commits,body` and
 `gh pr diff <n>`, plus `git fetch origin <baseRefName>` and `git rev-parse origin/<baseRefName>`.
 Compare with the recorded head SHA, base SHA and comment count. Report the delta in one
@@ -553,7 +559,7 @@ one line saying so.
 
 - `refresh` (the Check PR for updates button): report the delta, then `set` again with the same
   outcome. A merged PR sets `outcome.label` to "Merged"; a closed one to "Closed". Stop.
-- `resume` (the Resume tour button, or `/walk-pr:tour` with an existing scratch file): report the
+- `resume` (the Resume tour button, or `/walk-pr:tour` with an existing tour file): report the
   delta, re-fetch the head ref, walk only the files with changed hunks as in step 5 of the
   gather, re-answer the lens, attach any new finding to its stage with decision `later`, mark the stages whose files changed as `pending`
   again, then checkpoint on the first of those (or the last stage when none changed) with

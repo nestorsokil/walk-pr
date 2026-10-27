@@ -83,6 +83,9 @@ Checked at every session start; anything missing shows in the pane's empty state
 
 "Walk me through PR 123" works too. `/walk-pr-pane` reopens the pane if you closed it.
 
+A PR tour is cached in `~/.claude/walk-pr/tours/`, so the same command in another session
+resumes it instead of gathering again. A scheduled task can pre-build tours this way.
+
 ## Terminal
 
 The pane draws in a terminal too. Diagrams render to PNG through mermaid-cli (`npx`, first run

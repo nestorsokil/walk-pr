@@ -25,7 +25,7 @@ and a decision with options becomes an `AskUserQuestion` with those options.
 
 Three phases: the plan tour (the reader reads a plan they have not seen), the run (the plan
 is implemented commit by commit while the pane shows progress), the finish (verification,
-subagent review, findings the reader picks, draft PR). The scratch file and the plan file
+subagent review, findings the reader picks, draft PR). The tour file and the plan file
 carry the state across all three; resume works at any point.
 
 Say one line before gathering ("Reading PROJ-123 and the alerting code"), then nothing until
@@ -77,7 +77,7 @@ the overview.
    - **Out of scope**: what the ticket asks that the plan leaves out, and why.
    - **State**: phase, head SHA of the branch when it exists, per-stage status and commit
      SHAs, per-decision choice, the review findings and their decisions.
-   The scratch file for the pane is the same file; one file, not two.
+   The tour file for the pane is the same file; one file, not two.
 6. **Decisions become findings.** Each decision is a finding with `label: decision`,
    `options`, no `chosen`, `where` = the stage name and the file the choice lands in, and
    `text` = the question in one sentence. Attach it to the stage it reshapes first. A stage
