@@ -448,6 +448,7 @@ export const register: Register = (on, options) => {
     }
     const label = (s: { name: string; role?: string }) => (s.role ? `${s.role}: ${s.name}` : s.name)
     const nameWidth = Math.max(...state.stages.map(s => label(s).length)) + 4
+    const prNumber = state.url ? /\/pull\/(\d+)/.exec(state.url)?.[1] : undefined
     const kindColor = state.kind.includes('bug') ? 'error' : state.kind.includes('refactor') ? 'claude' : 'success'
     const complexityColor = (c: string) => (c === 'easy' ? 'success' : c === 'medium' ? 'warning' : 'error')
     const outcomeColor = (label: string) =>
@@ -459,6 +460,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1} backgroundColor={bg} minHeight="100%">
         <Box flexDirection="column">
           <Box gap={1}>
+            {prNumber && <Text color="claude">#{prNumber}</Text>}
             <Text bold={!onTerminal}>{state.title}</Text>
             {state.author && <Text dimColor>by {state.author}</Text>}
           </Box>
