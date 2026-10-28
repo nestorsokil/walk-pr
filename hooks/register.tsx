@@ -753,6 +753,13 @@ export const register: Register = (on, options) => {
               Check PR for updates
             </Button>
           )}
+          {closed && isBuild && state.url && (
+            <Box borderStyle="round" borderColor="claude" padding={0}>
+              <Button key="review-round" onPress={send('walk-pr: review round')}>
+                Another review round
+              </Button>
+            </Box>
+          )}
           {closed && !isBuild && state.findings.some(f => !f.posted && f.decision === 'raise') && (
             <Button key="post-raised" variant="primary" onPress={send('walk-pr: review comment')}>
               Post raised

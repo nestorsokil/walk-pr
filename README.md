@@ -35,8 +35,10 @@ options in the pane; the recommended one is marked, nothing is picked for you. C
 chat re-plan the stages they touch. Open plan opens the plan file. Approve plan marks the
 issue in progress when a tracker is connected, branches in a
 worktree and implements commit by commit, each with its own
-focused test; the heavy verification runs once at the end, a subagent reviews the diff, you
-pick which findings get fixed, and a draft PR opens.
+focused test; the heavy verification runs once at the end, a draft PR opens and is driven to
+green, then a polish round: a fresh subagent reviews the PR on GitHub as an outside reviewer
+and posts its findings as a review round, the main session fixes what holds, replies to the
+rest, and drives CI green again. Another review round in the pane runs one more.
 
 <img width="75%" height="1488" alt="image" src="https://github.com/user-attachments/assets/88391882-0353-4c17-b66a-71acc85aa944" />
 

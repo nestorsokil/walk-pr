@@ -1,6 +1,6 @@
 ---
 name: build
-description: BETA. Plan-and-implement tour of a change, driven from the same side pane as the PR tour. Takes a ticket or a problem stated verbatim, builds an overview card and a stage menu over the plan, walks the reader through the problem, the approach and each part to build, raises every design choice as a decision with options the reader picks, then implements the approved plan commit by commit in a worktree, verifies at the end, has a subagent review the diff, fixes the findings the reader picks, and opens a draft PR. Trigger on "/walk-pr:build", "walk me through building this", "plan this ticket with me", "build PROJ-123 with me", "tour the implementation of", or a ticket link with "build" / "implement with me" intent. Do NOT trigger for reviewing an existing PR (use walk-pr:tour), for a plain implementation with no walkthrough, or for a spec-first workflow the user names (sdd, plan mode).
+description: BETA. Plan-and-implement tour of a change, driven from the same side pane as the PR tour. Takes a ticket or a problem stated verbatim, builds an overview card and a stage menu over the plan, walks the reader through the problem, the approach and each part to build, raises every design choice as a decision with options the reader picks, then implements the approved plan commit by commit in a worktree, verifies at the end, opens a draft PR, drives it to green, and runs polish rounds where a fresh subagent reviews the PR on GitHub and the main session fixes what holds. Trigger on "/walk-pr:build", "walk me through building this", "plan this ticket with me", "build PROJ-123 with me", "tour the implementation of", or a ticket link with "build" / "implement with me" intent. Do NOT trigger for reviewing an existing PR (use walk-pr:tour), for a plain implementation with no walkthrough, or for a spec-first workflow the user names (sdd, plan mode).
 ---
 
 # Build a change (beta)
@@ -25,7 +25,8 @@ and a decision with options becomes an `AskUserQuestion` with those options.
 
 Three phases: the plan tour (the reader reads a plan they have not seen), the run (the plan
 is implemented commit by commit while the pane shows progress), the finish (verification,
-subagent review, findings the reader picks, draft PR). The tour file and the plan file
+draft PR driven to green, then polish rounds where a fresh subagent reviews on GitHub and
+the main session fixes). The tour file and the plan file
 carry the state across all three; resume works at any point.
 
 Say one line before gathering ("Reading PROJ-123 and the alerting code"), then nothing until
@@ -183,26 +184,48 @@ The pane shows progress; the reader is not asked to click between commits.
    repo guidance says about host capacity. A failure: fix in a new commit on the stage it belongs to,
    re-run only what failed, then the full set once more. Record what ran and the result in
    the plan file.
-2. **Review.** Spawn one fresh subagent with the branch, the base, the plan file and the
-   repo's review skill when one exists (a `SKILL.md` under `.claude/skills/` or
-   `.agents/skills/` that reviews pull requests); its brief is
-   to review the diff as the tour's gather step 5 does, with the evidence rule, and return
-   findings with file, line, label, evidence. Every finding becomes a pane finding with
-   decision `later`, `label` from the review, attached to the stage whose commits it is in.
-   `set` with `isFinished: true` and `prompts` empty; one line: "Pick which findings to fix
-   in the pane." Fix and Skip are the pane's buttons here.
-3. **Fix** the findings marked Fix, one commit per finding on its stage, each with its
-   focused test; re-run the verification items the fixes touch. Skipped ones are listed in
-   the PR body under "Known and left".
-4. **Draft PR.** Push the branch and open a draft PR with the repo's PR skill when the host
+2. **Draft PR.** Push the branch and open a draft PR with the repo's PR skill when the host
    lists one (a skill that opens PRs and carries the body conventions); otherwise
    `gh pr create --draft` with a body of two or three sentences on intent, one diagram when
    the change warrants it, and the issue link. Link the PR on the issue when a tracker is
-   connected.
-5. `set` with `url` = the PR page, `size` from the PR, `outcome.label` "Draft PR opened",
-   `outcome.url` = the PR, every stage `done` with its commits, every finding with its
-   decision; the pane stays. One line with the link and what the reader does next (mark
-   ready for review, or let the PR skill drive CI).
+   connected. `set` with `url` = the PR page, `size` from the PR, every stage `done` with its
+   commits, `outcome.label` "Draft PR opened", `outcome.url` = the PR.
+3. **Drive to green.** Watch CI through the host's PR tools when it has them (bind the PR,
+   read its checks, react to failures the host reports) or by polling
+   `gh pr checks <n> --watch`; fix every failing check in a commit on the stage it belongs
+   to and push. Green means every check concluded without failure.
+4. **Polish rounds.** At least one, always, then as many as the reader asks for. A round:
+   - Spawn one fresh subagent (no conversation context; the brief below is all it knows) and
+     wait for it. Its brief: the PR url, the base branch, the plan file's path, the repo's
+     review skill when one exists (a `SKILL.md` under `.claude/skills/` or `.agents/skills/`
+     that reviews pull requests), and these instructions: review the PR as an outside
+     reviewer who has not seen it built, with the tour's evidence rule and labels; read the
+     diff against the base, the PR title and body, the linked issue; check that the body
+     describes what the diff does and nothing else, that every dependency, lockfile,
+     generated output and import the change needs is in the diff and consistent, that tests
+     cover the change, and that the commit titles follow the repo's convention; then post
+     one COMMENT review on the PR with `gh api repos/{owner}/{repo}/pulls/<n>/reviews`: body
+     starting with `**Review round <k>** (automated, from the build tour)` and one sentence
+     on what was covered, `comments` = each finding as a line comment placed as the tour's
+     finish step 4 places them, off-diff findings in the body; and return the findings as a
+     list with file, line, label, evidence, and the posted comment id.
+   - Every returned finding becomes a pane finding: next free `n`, `label` from the review,
+     `where`, `posted: true`, decision `raise`, attached to the stage whose commits it is in
+     (the last stage when none fits). `set` with them and the stage `running`.
+   - React to each finding, in the main session: an `issue`, a `suggestion` that is right,
+     or a body or dependency inconsistency is fixed in a commit on its stage with its focused
+     test, and gets `resolution: fixed`; a finding that is wrong, out of scope, or not worth
+     the change gets `decision: drop` and a reply in its thread saying why in one or two
+     sentences (`gh api -X POST .../comments/<id>/replies`). A `nitpick` is fixed when the
+     fix is one line, else dropped the same way. Nothing is left without a fix or a reply.
+     When a fix changes what the PR does, update the PR body in the same round.
+   - Push, then step 3 again until green.
+   - `set` with every finding's resolution or decision, `outcome.label` "Round <k> done",
+     `outcome.url` = the review link, every stage `done`; one line: the round number, how
+     many findings were fixed and how many dropped, and the link. The pane then shows
+     Another review round; a click runs the next round from here.
+5. After the last round the pane stays on the outcome. One line with the PR link and what
+   the reader does next (mark ready for review, or another round).
 
 ## Resume
 
@@ -223,4 +246,5 @@ The tour's actions apply (`next`, `go to`, `finish`, `finding <n> ...`, `explain
 - `revise plan: <instruction>` — Phase 6 step 3.
 - `done` — Phase 6 step 5 during the plan; after the run, `set` with the outcome as it
   stands.
+- `review round` — Phase 8 step 4 once more, with the next round number.
 - `show plan` — print the plan file's stage list and decisions as they stand.

@@ -25,6 +25,7 @@ Open plan button; the finish draws Approve plan, Revise plan (fills the composer
 `walk-pr: revise plan: `) and Stop here.
 
 - `walk-pr: approve plan`, `walk-pr: show plan`
+- `walk-pr: review round` (Another review round, after the PR outcome in build mode)
 - `walk-pr: finding <n> option <k>` (typed form of a pick)
 
 `/walk-pr-pane` reopens the pane after it was closed; it also reopens itself when a session with a tour starts.
