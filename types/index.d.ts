@@ -28,6 +28,8 @@ export type Finding = {
   options?: Option[]
   chosen?: number
   isUnverified?: boolean
+  verify?: string
+  verification?: Verification
   resolution?: 'fixed' | 'partial'
   comment?: string
   stage?: string
@@ -36,6 +38,9 @@ export type Finding = {
   thread?: { replies: number; lastBy: string; isResolved?: boolean }
   reply?: string
 }
+
+// What a background run found for a finding; note is one line of evidence.
+export type Verification = { state: 'running' | 'confirmed' | 'refuted' | 'inconclusive'; note?: string }
 
 // A click in the pane until the skill has been told about it; sent ones are dropped on the next set.
 export type PendingDecision = { n: number; decision?: 'raise' | 'drop'; chosen?: number; isSent: boolean }
@@ -51,6 +56,7 @@ export type Tour = {
   complexity?: 'easy' | 'medium' | 'complex'
   size?: { additions: number; deletions: number }
   verdict: string
+  reviewBody?: string
   stages: Stage[]
   findings: Finding[]
   prompts: string[]

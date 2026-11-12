@@ -141,6 +141,12 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
      shown and counted like any finding, never posted again, and the reader's move on it is
      a reply in that thread. A thread the author already resolved is not a finding unless the
      code still shows the defect; then it is a new finding whose comment names the thread.
+   - A finding that a run can settle gets `verify`: the run in one imperative line, eight
+     words or fewer, naming the concrete thing ("Run TestLimiter_Burst on base and head",
+     "Reproduce with a 0.5 ms timestamp"). This holds for the reader's own findings and for
+     ones with `raisedBy`; another reviewer's claim is checked the same way. A finding that
+     only the author or production data can settle gets none. The pane draws a Verify button
+     for it; see `verify finding <n>` under "Checkpoint".
    Record each finding with its file, line, label, evidence, and decision `later`.
 6. Build the tour and write it to the tour file. For a PR target that is
    `~/.claude/walk-pr/tours/<owner>-<repo>-<n>.md` (create the directory), a cache shared by
@@ -481,6 +487,30 @@ Fixed actions:
   input that triggers it, and what a fix would look like, in prose and at most one diagram; no
   decision is recorded. Then checkpoint again.
 
+- `verify finding <n>` — from a finding's Verify button: start the finding's `verify` run in
+  a background agent (the Agent tool, general-purpose), then `set` with that finding's
+  `verification: { state: "running" }`, say in one line what runs, and end the turn. Never
+  run it inline and never wait for it; the reader keeps touring. The brief for the agent
+  holds everything it needs, since it sees nothing of this conversation:
+  - the finding: label, text, `where`, the quoted decisive lines, and the `verify` line;
+  - the repository path, the head SHA and the base SHA, and the PR number;
+  - where to work: a throwaway worktree of the head
+    (`git worktree add --detach <scratchpad>/walk-pr-verify-<n> <head sha>`), removed at the
+    end; never the reader's checkout, and nothing is committed, pushed or posted;
+  - how to check: the focused tests that cover the lines, with the module's own test
+    command in its fast mode; when no test reaches the claim, a throwaway test or script
+    that reproduces the concrete input; the same run on the base when the claim is about
+    behaviour the PR changed;
+  - what to return: `confirmed`, `refuted` or `inconclusive`, the commands run with their
+    result, and one line of evidence.
+  When the agent reports, read its evidence before trusting it, then record the result in
+  the tour file and `set`: `verification.state` and a one-line `note`. `confirmed` clears
+  `isUnverified`, and a `question` whose evidence is now a concrete failing input becomes an
+  `issue`. `refuted` sets the decision to `drop` for a finding of the reader's that is not
+  posted, and drafts a `reply` for one with `raisedBy`. `inconclusive` changes nothing else
+  and the note says what blocked the run. One line to the reader with the result. Several
+  findings may verify at once, one agent each.
+
 Without the pane and without `show_widget`: AskUserQuestion, header the stage name, question
 "Where next?", options **Next**, the two best contextual prompts, **Finish now**; findings
 decisions and jumps come as free text.
@@ -496,8 +526,13 @@ already shows every finding with its comment, and the reader has seen the stages
 2. **Decisions and verdict.** Write the review comment for every finding first: `comment` =
    the exact body step 4 posts, in the reviewer's voice, one to three sentences, the concern
    and one sentence on why when it is not obvious; a finding with `isUnverified` is phrased
-   as a question and says what was not checked. With the pane: `mcp__walk-pr__set` with all
-   findings and their `comment`, `isFinished: true`, and no prompts; the pane shows each
+   as a question and says what was not checked. Then write `reviewBody`, the draft of the
+   review's general comment, in the reviewer's voice, two to five sentences: what the
+   review covered (the whole change, or the stages shown when some were skipped), what was
+   checked and found sound, and what was not run. It names no verdict and no comment
+   count, so the same text fits Approve, Request changes and Comment. With the pane:
+   `mcp__walk-pr__set` with all findings and their `comment`, `reviewBody`, `isFinished:
+   true`, and no prompts; the pane shows the review comment above the findings, each
    raised finding's comment verbatim, Raise and Drop on every finding, and the
    verdict buttons Approve, Request changes, Comment, Done without posting. Without the pane: the
    finish widget (widgets.md, template 4) carries the same buttons. Without either: a numbered
@@ -507,15 +542,19 @@ already shows every finding with its comment, and the reader has seen the stages
    `edit comment <n>: <instruction>` rewrites that finding's `comment` as instructed (a
    wording change, a sentence to add or drop, a different tone), keeps it one to three
    sentences, and calls `set` with the new text before its one line saying what changed; no
-   draft in the chat. `edit reply <n>: <instruction>` does the same to `reply`.
+   draft in the chat. `edit reply <n>: <instruction>` does the same to `reply`, and
+   `edit review body: <instruction>` does the same to `reviewBody`. A reader's remark in
+   chat about the general comment ("say we found no effect on SLO queries") is the same
+   edit. Every `set` from here on carries `reviewBody` as recorded in the tour file.
 4. `review approve|request-changes|comment` submits one GitHub review:
    `gh api repos/{owner}/{repo}/pulls/<n>/reviews` with `event` `APPROVE`, `REQUEST_CHANGES` or
    `COMMENT`, `comments` = the `raise` findings as line comments (body = the finding's
-   `comment`, posted exactly as the pane showed it), and `body` written now, in the
-   reviewer's voice, one or two sentences that match what is being posted: what the review
-   covered (the whole change, or the stages shown when some were skipped) and the number of
-   comments it carries, or that it carries none. Never the overview card's verdict line; its
-   concern count was written before the reader decided.
+   `comment`, posted exactly as the pane showed it), and `body` = `reviewBody`, posted
+   exactly as the pane showed it. Never the overview card's verdict line; its concern
+   count was written before the reader decided.
+   Before posting, compare the PR's head SHA with the one the tour file records. A moved
+   head means the drafts may no longer hold: post nothing, run `resume`, and say in one
+   line that the PR changed and the drafts need another look.
    GitHub accepts a line comment only on a line inside a hunk of the PR diff, so place each
    raised finding before posting, from `gh pr diff <n>`:
    - an added or context line of a hunk: `path`, `line`, `side: RIGHT`;
@@ -529,7 +568,7 @@ already shows every finding with its comment, and the reader has seen the stages
    posted in the body is recorded with `posted: true` and no comment id.
    Every verdict button posts at once, whatever the state: stages not shown, no raised
    findings, Request changes with nothing raised. The pane already lists the stages not
-   shown, and the review body names what was covered and what it carries. Nothing is asked
+   shown, and the review body names what was covered. Nothing is asked
    in chat before posting. GitHub refuses approving your own PR; say so and offer Comment.
    Report with a short brief: the verdict, the review link, and one line per posted comment
    (finding label, where, first clause). Then list the review's comments

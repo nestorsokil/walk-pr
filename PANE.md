@@ -12,7 +12,13 @@ Protocol the buttons speak (same as `skills/tour/widgets.md`):
 - `walk-pr: review approve|request-changes|comment`
 - `walk-pr: finding <n> raise|drop`
 - `walk-pr: explain finding <n>`
+- `walk-pr: verify finding <n>` (Verify, on a finding that carries `verify`; the skill runs it
+  in a background agent and reports back through `verification`)
 - a contextual prompt's own text
+
+At the finish in tour mode, `reviewBody` is drawn above the findings as the review comment.
+Its Edit comment button fills the composer with `walk-pr: edit review body: `. The same text
+is posted as the review body with any of the three verdicts.
 
 Raise, Drop and an option pick are held in the pane as pending decisions and ride along on
 the next message, as the suffix `(findings: 1 raise, 3 option 2)` on a click or as hidden

@@ -16,6 +16,8 @@ Prompt strings:
 | Finish now | `walk-pr: finish` |
 | Finding decision | `walk-pr: finding <n> <raise|drop|later>` |
 | Finding Explain more | `walk-pr: explain finding <n>` |
+| Finding Verify (pane only, when the finding has `verify`) | `walk-pr: verify finding <n>` |
+| Edit comment on the review comment (pane only) | fills the composer with `walk-pr: edit review body: ` for the reader to finish |
 | Verdict | `walk-pr: review approve`, `walk-pr: review request-changes`, `walk-pr: review comment` |
 | Done without posting | `walk-pr: done` |
 | Resume tour | `walk-pr: resume` |

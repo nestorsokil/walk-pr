@@ -91,6 +91,10 @@ export const register: Register = (on, options) => {
                 required: ['additions', 'deletions'],
               },
               verdict: { type: 'string' },
+              reviewBody: {
+                type: 'string',
+                description: 'tour mode, at the finish: the draft of the review\'s general comment, posted as the review body with whichever verdict the reader picks; shown verbatim above the findings',
+              },
               stages: {
                 type: 'array',
                 items: {
@@ -135,6 +139,16 @@ export const register: Register = (on, options) => {
                     },
                     chosen: { type: 'integer', description: 'index into options once the reader decided; absent until then' },
                     isUnverified: { type: 'boolean', description: 'the code alone could not settle it; the comment is phrased as a question' },
+                    verify: { type: 'string', description: 'optional: the run that would settle this finding, one imperative line ("Run TestLimiter_Burst on base and head"); the pane then draws a Verify button that starts it in a background agent' },
+                    verification: {
+                      type: 'object',
+                      description: 'state of the background verification: running while the agent works, then what it found',
+                      properties: {
+                        state: { type: 'string', enum: ['running', 'confirmed', 'refuted', 'inconclusive'] },
+                        note: { type: 'string', description: 'one line of evidence: the test and its result, or why the run settled nothing' },
+                      },
+                      required: ['state'],
+                    },
                     resolution: { type: 'string', enum: ['fixed', 'partial'], description: 'set on resume when new commits address a posted finding fully or in part' },
                     comment: { type: 'string', description: 'the exact review comment body that Raise posts for this finding; shown verbatim on the finish screen' },
                     stage: { type: 'string', description: 'name of the stage the finding belongs to; findings are always all sent, the pane lists the current stage\'s first with the stage chip highlighted' },
@@ -457,6 +471,8 @@ export const register: Register = (on, options) => {
     const complexityColor = (c: string) => (c === 'easy' ? 'success' : c === 'medium' ? 'warning' : 'error')
     const outcomeColor = (label: string) =>
       /approved|merged/i.test(label) ? 'success' : /changes/i.test(label) ? 'error' : /commented/i.test(label) ? 'claude' : 'inactive'
+    const verificationColor = (s: string) => (s === 'confirmed' ? 'error' : s === 'refuted' ? 'success' : s === 'running' ? 'warning' : 'inactive')
+    const verificationLabel = (s: string) => (s === 'running' ? 'verifying…' : s)
     const decisionChip = (d: string) =>
       d === 'raise' ? <Chip color="error" label="raised" /> : d === 'drop' ? <Chip color="inactive" label="dropped" /> : <Chip color="warning" label={d} />
 
@@ -556,6 +572,22 @@ export const register: Register = (on, options) => {
           })}
         </Box>
 
+        {state.isFinished && !isBuild && state.reviewBody && (
+          <Box flexDirection="column">
+            <Text dimColor bold>{closed ? 'REVIEW COMMENT' : 'REVIEW COMMENT · posted with the verdict you pick'}</Text>
+            <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="round" borderColor="inactive">
+              <Text>{state.reviewBody}</Text>
+              {!closed && (
+                <Box marginTop={1}>
+                  <Button key="edit-review-body" onPress={fill('walk-pr: edit review body: ')}>
+                    Edit comment
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        )}
+
         {state.findings.length > 0 && (
           <Box flexDirection="column">
             <Text dimColor bold>
@@ -587,7 +619,8 @@ export const register: Register = (on, options) => {
                   <Box gap={1}>
                     <Chip color={tone} label={f.label} />
                     {chosenLabel && <Chip color="success" label={chosenLabel} />}
-                    {f.isUnverified && <Chip color="inactive" label="unverified" />}
+                    {f.isUnverified && !f.verification && <Chip color="inactive" label="unverified" />}
+                    {f.verification && <Chip color={verificationColor(f.verification.state)} label={verificationLabel(f.verification.state)} />}
                     {f.raisedBy && <Chip color="claude" label={`raised by ${f.raisedBy}`} />}
                     {f.resolution === 'fixed' && <Chip color="success" label="Fixed" />}
                     {f.resolution === 'partial' && <Chip color="warning" label="Partially fixed" />}
@@ -607,6 +640,15 @@ export const register: Register = (on, options) => {
                     </Button>
                   ) : (
                     <Text dimColor italic>{f.where}</Text>
+                  )}
+                  {f.verification?.note && <Text dimColor italic>{f.verification.note}</Text>}
+                  {f.verify && !f.options && f.verification?.state !== 'running' && (
+                    <Box gap={1} marginTop={1} alignItems="center">
+                      <Button key={`verify:${f.n}`} onPress={send(`walk-pr: verify finding ${f.n}`)}>
+                        {f.verification ? 'Verify again' : 'Verify'}
+                      </Button>
+                      <Text dimColor>{f.verify}</Text>
+                    </Box>
                   )}
                   {f.options && (
                     <Box flexDirection="column" marginTop={1}>
