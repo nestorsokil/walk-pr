@@ -527,10 +527,17 @@ already shows every finding with its comment, and the reader has seen the stages
    the exact body step 4 posts, in the reviewer's voice, one to three sentences, the concern
    and one sentence on why when it is not obvious; a finding with `isUnverified` is phrased
    as a question and says what was not checked. Then write `reviewBody`, the draft of the
-   review's general comment, in the reviewer's voice, two to five sentences: what the
-   review covered (the whole change, or the stages shown when some were skipped), what was
-   checked and found sound, and what was not run. It names no verdict and no comment
-   count, so the same text fits Approve, Request changes and Comment. With the pane:
+   review's general comment, in the reviewer's voice: one short line that gives the overall
+   read of the review, taken from the findings set to `raise` and their labels. The inline
+   comments carry the detail; the body does not repeat them, list what was covered, or say
+   what was not run.
+   - nothing raised: "No findings, looks good to merge."
+   - only `question`, `suggestion` or `nitpick` raised: "Overall looks good, a few comments."
+   - an `issue` raised: "Found an issue that should be addressed before merging."
+
+   These are examples of the register, not fixed strings. Add one more sentence only when the
+   author needs context that no inline comment can hold, such as a concern about the whole
+   approach. With the pane:
    `mcp__walk-pr__set` with all findings and their `comment`, `reviewBody`, `isFinished:
    true`, and no prompts; the pane shows the review comment above the findings, each
    raised finding's comment verbatim, Raise and Drop on every finding, and the
@@ -538,7 +545,9 @@ already shows every finding with its comment, and the reader has seen the stages
    finish widget (widgets.md, template 4) carries the same buttons. Without either: a numbered
    list, and the reader decides in their words ("raise 1 and 3, approve"). Skipped stages'
    findings are included.
-3. Each `finding <n> ...` click re-renders the pane or widget with the decision applied.
+3. Each `finding <n> ...` click re-renders the pane or widget with the decision applied, and
+   with `reviewBody` written again from the new set of raised findings. A `reviewBody` the
+   reader edited stays as the reader wrote it.
    `edit comment <n>: <instruction>` rewrites that finding's `comment` as instructed (a
    wording change, a sentence to add or drop, a different tone), keeps it one to three
    sentences, and calls `set` with the new text before its one line saying what changed; no
@@ -555,6 +564,14 @@ already shows every finding with its comment, and the reader has seen the stages
    Before posting, compare the PR's head SHA with the one the tour file records. A moved
    head means the drafts may no longer hold: post nothing, run `resume`, and say in one
    line that the PR changed and the drafts need another look.
+   Before posting, also compare the verdict with `reviewBody` and the raised findings. They
+   disagree when the verdict is Approve and the body or a raised `issue` says something must
+   be addressed before merging, or when the verdict is Request changes and the body says the
+   change looks good or no `issue` is raised. Comment agrees with any body. On a
+   disagreement post nothing: `set` to unlock the pane, say in one line what disagrees
+   ("You picked Approve, but the review body says an issue should be addressed before
+   merging"), and ask which to keep: the verdict with a body rewritten to match it, the body
+   with a different verdict, or both as they are. Post after the reader answers.
    GitHub accepts a line comment only on a line inside a hunk of the PR diff, so place each
    raised finding before posting, from `gh pr diff <n>`:
    - an added or context line of a hunk: `path`, `line`, `side: RIGHT`;
@@ -566,10 +583,10 @@ already shows every finding with its comment, and the reader has seen the stages
    Post once. A 422 on the call means a comment is still misplaced: move every line comment
    into the body the same way and post once more, so the review always lands. A finding
    posted in the body is recorded with `posted: true` and no comment id.
-   Every verdict button posts at once, whatever the state: stages not shown, no raised
-   findings, Request changes with nothing raised. The pane already lists the stages not
-   shown, and the review body names what was covered. Nothing is asked
-   in chat before posting. GitHub refuses approving your own PR; say so and offer Comment.
+   Apart from that disagreement, every verdict button posts at once, whatever the state:
+   stages not shown, no raised findings. The pane already lists the stages not shown.
+   Nothing else is asked in chat before posting. GitHub refuses approving your own PR; say
+   so and offer Comment.
    Report with a short brief: the verdict, the review link, and one line per posted comment
    (finding label, where, first clause). Then list the review's comments
    (`gh api repos/{owner}/{repo}/pulls/<n>/comments --jq '.[] | select(.pull_request_review_id == <review id>) | {id, path, line}'`)
@@ -581,8 +598,8 @@ already shows every finding with its comment, and the reader has seen the stages
    `set` with those marked `posted` and the outcome unchanged.
    After the outcome, `review approve` (the pane's Approve button, shown while the outcome is
    not Approved, Merged or Closed) posts one APPROVE review without a resume: `comments` = the
-   raised findings not yet posted, `body` one or two sentences in the reviewer's voice saying
-   what was covered and that the earlier comments were addressed, naming any posted finding
+   raised findings not yet posted, `body` one short line in the reviewer's voice in the
+   register of step 2 ("Comments addressed, looks good to merge."), naming any posted finding
    that still has no `resolution` as left open. Then step 5 with `outcome.label` "Approved".
 5. After posting, or on `done`, the pane stays. Call `set` with the whole tour, `isFinished:
    true`, `prompts: []`, and `outcome`: `label` one of "Approved", "Changes requested",

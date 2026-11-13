@@ -93,7 +93,7 @@ export const register: Register = (on, options) => {
               verdict: { type: 'string' },
               reviewBody: {
                 type: 'string',
-                description: 'tour mode, at the finish: the draft of the review\'s general comment, posted as the review body with whichever verdict the reader picks; shown verbatim above the findings',
+                description: 'tour mode, at the finish: the draft of the review\'s general comment, one short line with the overall read of the raised findings, posted as the review body; shown verbatim above the findings',
               },
               stages: {
                 type: 'array',
