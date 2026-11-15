@@ -30,10 +30,12 @@ and Skip; stages may be `running` or `blocked` and list their `commits`; `plan.f
 Open plan button; a finding with `label: criterion` is an acceptance criterion, drawn with
 no Fix and Skip, and its `verification` reads proven (`confirmed`), not met (`refuted`) or
 not verified (`inconclusive`), with a not-met one counted as severe on its stage; the
-finish draws Approve plan, Revise plan (fills the composer with
+finish draws Run, Run in VS Code, Revise plan (fills the composer with
 `walk-pr: revise plan: `) and Stop here.
 
-- `walk-pr: approve plan`, `walk-pr: show plan`
+- `walk-pr: approve plan` (Run), `walk-pr: show plan`
+- `walk-pr: approve plan in editor` (Run in VS Code: the implementer runs as a session in
+  the editor, and Resume build continues from there)
 - `walk-pr: review round` (Another review round, after the PR outcome in build mode)
 - `walk-pr: finding <n> option <k>` (typed form of a pick)
 

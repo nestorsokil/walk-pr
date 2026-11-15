@@ -601,7 +601,7 @@ export const register: Register = (on, options) => {
                 ? closed
                   ? 'DECISIONS AND FINDINGS'
                   : state.isFinished
-                    ? 'DECISIONS · every one needs a pick before the plan is approved'
+                    ? 'DECISIONS · every one needs a pick before the run'
                     : 'DECISIONS'
                 : closed
                   ? 'FINDINGS'
@@ -796,7 +796,7 @@ export const register: Register = (on, options) => {
         <Box gap={1} flexWrap="wrap" marginTop={1}>
           {closed && (
             <Button key="resume" variant="primary" onPress={send('walk-pr: resume')}>
-              Resume tour
+              {isBuild ? 'Resume build' : 'Resume tour'}
             </Button>
           )}
           {closed && !isBuild && (
@@ -826,9 +826,14 @@ export const register: Register = (on, options) => {
           {state.isFinished && !closed && isBuild && (
             <Box borderStyle="round" borderColor="success" padding={0}>
               <Button key="approve-plan" onPress={send('walk-pr: approve plan')}>
-                Approve plan
+                Run
               </Button>
             </Box>
+          )}
+          {state.isFinished && !closed && isBuild && (
+            <Button key="approve-plan-editor" onPress={send('walk-pr: approve plan in editor')}>
+              Run in VS Code
+            </Button>
           )}
           {state.isFinished && !closed && isBuild && (
             <Button key="revise-plan" onPress={fill('walk-pr: revise plan: ')}>
