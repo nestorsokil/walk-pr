@@ -327,31 +327,15 @@ checks what comes back, and owns every decision.
    `gh pr checks <n> --watch`; fix every failing check in a commit on the stage it belongs
    to and push. Green means every check concluded without failure.
 6. **Polish rounds.** At least one, always, then as many as the reader asks for. A round:
-   - Spawn one fresh subagent (no conversation context; the brief below is all it knows) and
-     wait for it. Its brief: the PR url, the base branch, the plan file's path, the repo's
-     review skill when one exists (a `SKILL.md` under `.claude/skills/` or `.agents/skills/`
-     that reviews pull requests), and these instructions: review the PR as an outside
-     reviewer who has not seen it built, with the tour's evidence rule and labels; read the
-     diff against the base, the PR title and body, the linked issue; check that the body
-     describes what the diff does and nothing else, that every dependency, lockfile,
-     generated output and import the change needs is in the diff and consistent, that tests
-     cover the change, and that the commit titles follow the repo's convention; then post
-     one COMMENT review on the PR with `gh api repos/{owner}/{repo}/pulls/<n>/reviews`: body
-     starting with `**Review round <k>** (automated, from the build tour)` and one sentence
-     on what was covered, `comments` = each finding as a line comment placed as the tour's
-     finish step 4 places them, off-diff findings in the body; and return the findings as a
-     list with file, line, label, evidence, and the posted comment id.
+   - Review: read `../polish/SKILL.md` and run its Review step, with the plan file's path
+     in the subagent's brief.
    - Every returned finding becomes a pane finding: next free `n`, `label` from the review,
      `where`, `posted: true`, decision `raise`, attached to the stage whose commits it is in
      (the last stage when none fits). `set` with them and the stage `running`.
-   - Decide on each finding, in the main session: an `issue`, a `suggestion` that is right,
-     or a body or dependency inconsistency is fixed in a commit on its stage with its focused
-     test, and gets `resolution: fixed`; a finding that is wrong, out of scope, or not worth
-     the change gets `decision: drop` and a reply in its thread saying why in one or two
-     sentences (`gh api -X POST .../comments/<id>/replies`). A `nitpick` is fixed when the
-     fix is one line, else dropped the same way. Nothing is left without a fix or a reply.
-     When a fix changes what the PR does, update the PR body in the same round. A fix that
-     touches the code or the proof of a criterion runs step 2 again for that criterion.
+   - Decide on each finding by the polish skill's React step. A fix is a commit on the
+     finding's stage and gets `resolution: fixed`; a dropped finding gets `decision: drop`.
+     A fix that touches the code or the proof of a criterion runs step 2 again for that
+     criterion.
    - Push, then step 5 again until green.
    - `set` with every finding's resolution or decision, `outcome.label` "Round <k> done",
      `outcome.url` = the review link, every stage `done`; one line: the round number, how

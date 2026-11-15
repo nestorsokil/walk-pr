@@ -43,6 +43,16 @@ rest, and drives CI green again. Another review round in the pane runs one more.
 <img width="75%" height="1488" alt="image" src="https://github.com/user-attachments/assets/88391882-0353-4c17-b66a-71acc85aa944" />
 
 
+## Polish an open PR
+
+```
+/walk-pr:polish <PR link or number> [rounds]
+```
+
+The polish round of the build tour, on any open PR, with no pane and no plan file. A fresh
+subagent reviews the PR as an outside reviewer and posts one COMMENT review. The main session
+fixes each finding that holds, replies to each one it drops, and drives CI to green.
+
 ## Install
 
 In a terminal Claude Code session:
@@ -99,6 +109,7 @@ diagram.
 
 - `skills/tour/` — the review skill: `SKILL.md`, widget templates in `widgets.md`.
 - `skills/build/` — the plan-and-implement skill (beta); reuses the tour's sections.
+- `skills/polish/` — the polish rounds as a standalone skill.
 - `hooks/`, `types/` — the pane mod. [PANE.md](PANE.md) lists the prompts its buttons send.
 
 ## Develop
