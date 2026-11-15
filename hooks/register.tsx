@@ -455,12 +455,14 @@ export const register: Register = (on, options) => {
         <Box flexDirection="column" paddingLeft={4} marginBottom={1} gap={1}>
           {!s.summary ? <Text dimColor>No summary yet.</Text> : !onTerminal && Markdown ? <Markdown text={s.summary} /> : <Text>{s.summary}</Text>}
           {diagram}
-          <Box gap={1}>
+          <Box gap={1} alignItems="center">
+            <Box borderStyle="round" borderColor="success" padding={0}>
+              <Button key={`ack:${s.name}`} onPress={ack(s.name, !s.isAcked)}>
+                {s.isAcked ? '✓ Acked' : 'Ack'}
+              </Button>
+            </Box>
             <Button key={`explain-stage:${s.name}`} onPress={send(`walk-pr: go to ${s.name}`)}>
               Explain more
-            </Button>
-            <Button key={`ack:${s.name}`} variant={s.isAcked ? 'primary' : 'secondary'} onPress={ack(s.name, !s.isAcked)}>
-              {s.isAcked ? '✓ Acked' : 'Ack'}
             </Button>
           </Box>
         </Box>
