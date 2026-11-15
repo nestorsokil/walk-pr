@@ -27,7 +27,10 @@ context on a typed message; after that the next `set` call is the record.
 Build mode (`mode: "build"`, from `skills/build/SKILL.md`): findings carry `options`, drawn
 as one button each with the recommended one primary until a pick; Raise and Drop read Fix
 and Skip; stages may be `running` or `blocked` and list their `commits`; `plan.file` adds an
-Open plan button; the finish draws Approve plan, Revise plan (fills the composer with
+Open plan button; a finding with `label: criterion` is an acceptance criterion, drawn with
+no Fix and Skip, and its `verification` reads proven (`confirmed`), not met (`refuted`) or
+not verified (`inconclusive`), with a not-met one counted as severe on its stage; the
+finish draws Approve plan, Revise plan (fills the composer with
 `walk-pr: revise plan: `) and Stop here.
 
 - `walk-pr: approve plan`, `walk-pr: show plan`

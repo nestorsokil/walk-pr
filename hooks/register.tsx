@@ -24,6 +24,7 @@ const AREA_COLOR: Record<Area, string> = {
 const ROLE_AREA: Record<string, Area> = {
   problem: 'coral',
   solution: 'purple',
+  criteria: 'purple',
   mechanism: 'teal',
   boundary: 'teal',
   data: 'teal',
@@ -42,6 +43,8 @@ const TOOL = 'mcp__walk-pr__set'
 
 const tourId = (t: Tour): string => t.url ?? t.title
 const isSameTour = (a: Tour, b: Tour): boolean => tourId(a) === tourId(b)
+
+const isCriterion = (f: { label: string }): boolean => f.label === 'criterion'
 
 const unsent = (t: Tour): PendingDecision[] => (t.pendingDecisions ?? []).filter(d => !d.isSent)
 const decisionsLine = (pending: PendingDecision[]): string =>
@@ -120,7 +123,7 @@ export const register: Register = (on, options) => {
                   type: 'object',
                   properties: {
                     n: { type: 'integer' },
-                    label: { type: 'string' },
+                    label: { type: 'string', description: 'issue, question, suggestion, nitpick, pre-existing; build mode adds decision, deviation, and criterion (an acceptance criterion: drawn without Fix and Skip, its verification shown as proven, not met or not verified)' },
                     text: { type: 'string' },
                     where: { type: 'string', description: 'file path and line at the head, "path:line"; with a PR url the pane links it to that line in the PR diff' },
                     decision: { type: 'string', enum: ['later', 'raise', 'drop'] },
@@ -459,8 +462,8 @@ export const register: Register = (on, options) => {
       const open = here.filter(f => f.resolution !== 'fixed' && f.decision !== 'drop')
       return {
         fixed: here.filter(f => f.resolution === 'fixed').length,
-        severe: open.filter(f => !f.options && f.label === 'issue').length,
-        minor: open.filter(f => !f.options && f.label !== 'issue' && f.label !== 'pre-existing').length,
+        severe: open.filter(f => !f.options && (f.label === 'issue' || (isCriterion(f) && f.verification?.state === 'refuted'))).length,
+        minor: open.filter(f => !f.options && !isCriterion(f) && f.label !== 'issue' && f.label !== 'pre-existing').length,
         decisions: open.filter(f => f.options && f.chosen === undefined).length,
       }
     }
@@ -473,6 +476,9 @@ export const register: Register = (on, options) => {
       /approved|merged/i.test(label) ? 'success' : /changes/i.test(label) ? 'error' : /commented/i.test(label) ? 'claude' : 'inactive'
     const verificationColor = (s: string) => (s === 'confirmed' ? 'error' : s === 'refuted' ? 'success' : s === 'running' ? 'warning' : 'inactive')
     const verificationLabel = (s: string) => (s === 'running' ? 'verifying…' : s)
+    // on a criterion a confirmed run is the good outcome
+    const proofColor = (s: string) => (s === 'confirmed' ? 'success' : s === 'refuted' ? 'error' : 'warning')
+    const proofLabel = (s: string) => (s === 'confirmed' ? 'proven' : s === 'refuted' ? 'not met' : s === 'running' ? 'verifying…' : 'not verified')
     const decisionChip = (d: string) =>
       d === 'raise' ? <Chip color="error" label="raised" /> : d === 'drop' ? <Chip color="inactive" label="dropped" /> : <Chip color="warning" label={d} />
 
@@ -604,7 +610,9 @@ export const register: Register = (on, options) => {
                     : 'CONCERNS'}
             </Text>
             {[...state.findings].sort((a, b) => Number(isHere(b)) - Number(isHere(a))).map(f => {
-              const tone = f.label === 'issue' ? 'error' : f.label === 'pre-existing' ? 'inactive' : f.options ? 'claude' : 'warning'
+              const criterion = isCriterion(f)
+              const proofState = criterion ? f.verification?.state : undefined
+              const tone = f.label === 'issue' ? 'error' : f.label === 'pre-existing' ? 'inactive' : f.options || criterion ? 'claude' : 'warning'
               const chosenLabel = f.options && f.chosen !== undefined ? f.options[f.chosen]?.label : undefined
               return (
                 <Box
@@ -613,14 +621,15 @@ export const register: Register = (on, options) => {
                   marginTop={1}
                   paddingX={1}
                   borderStyle="round"
-                  borderColor={f.resolution === 'fixed' || chosenLabel ? 'success' : f.decision === 'raise' ? 'error' : f.decision === 'drop' ? 'inactive' : tone}
+                  borderColor={proofState === 'refuted' ? 'error' : f.resolution === 'fixed' || chosenLabel || proofState === 'confirmed' ? 'success' : f.decision === 'raise' ? 'error' : f.decision === 'drop' ? 'inactive' : tone}
                   borderDimColor={f.decision === 'drop'}
                 >
                   <Box gap={1}>
                     <Chip color={tone} label={f.label} />
                     {chosenLabel && <Chip color="success" label={chosenLabel} />}
                     {f.isUnverified && !f.verification && <Chip color="inactive" label="unverified" />}
-                    {f.verification && <Chip color={verificationColor(f.verification.state)} label={verificationLabel(f.verification.state)} />}
+                    {f.verification && !criterion && <Chip color={verificationColor(f.verification.state)} label={verificationLabel(f.verification.state)} />}
+                    {f.verification && criterion && <Chip color={proofColor(f.verification.state)} label={proofLabel(f.verification.state)} />}
                     {f.raisedBy && <Chip color="claude" label={`raised by ${f.raisedBy}`} />}
                     {f.resolution === 'fixed' && <Chip color="success" label="Fixed" />}
                     {f.resolution === 'partial' && <Chip color="warning" label="Partially fixed" />}
@@ -711,7 +720,7 @@ export const register: Register = (on, options) => {
                     </Box>
                   )}
                   {closed && f.posted && !f.raisedBy && !f.options && <Box marginTop={1}>{decisionChip(f.decision)}</Box>}
-                  {closed && !f.posted && !f.raisedBy && !f.options && (
+                  {closed && !f.posted && !f.raisedBy && !f.options && !criterion && (
                     <Box gap={1} marginTop={1}>
                       <Button
                         key={`raise:${f.n}`}
@@ -731,7 +740,7 @@ export const register: Register = (on, options) => {
                   )}
                   {!closed && (
                   <Box gap={1} marginTop={1}>
-                    {!f.raisedBy && !f.options && (
+                    {!f.raisedBy && !f.options && !criterion && (
                       <Button
                         key={`raise:${f.n}`}
                         variant={f.decision === 'raise' ? 'primary' : 'secondary'}
@@ -740,7 +749,7 @@ export const register: Register = (on, options) => {
                         {f.decision === 'raise' ? `✓ ${raiseLabel}` : raiseLabel}
                       </Button>
                     )}
-                    {!f.raisedBy && !f.options && (
+                    {!f.raisedBy && !f.options && !criterion && (
                       <Button
                         key={`drop:${f.n}`}
                         variant={f.decision === 'drop' ? 'primary' : 'secondary'}
