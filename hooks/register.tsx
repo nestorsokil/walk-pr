@@ -47,9 +47,18 @@ const tourId = (t: Tour): string => t.url ?? t.title
 const isSameTour = (a: Tour, b: Tour): boolean => tourId(a) === tourId(b)
 
 const isCriterion = (f: { label: string }): boolean => f.label === 'criterion'
-// The pane draws an SVG at its own width up to the slot; a root with no width draws at 300px.
-const widened = (svg: string): string =>
-  svg.replace(/<svg\b[^>]*>/, root => root.replace(/\s(?:width|height)\s*=\s*("[^"]*"|'[^']*')/g, '').replace(/^<svg\b/, '<svg width="1200"'))
+const DIAGRAM_WIDTH = 720
+// The interactive frame is 150px high unless the element and the root carry a size.
+const sized = (svg: string): { source: string; width: number; height: number } => {
+  const box = /viewBox\s*=\s*["']\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)/.exec(svg)
+  const ratio = box && Number(box[1]) > 0 ? Number(box[2]) / Number(box[1]) : 0.6
+  const height = Math.round(DIAGRAM_WIDTH * ratio)
+  const source = svg.replace(/<svg\b[^>]*>/, root =>
+    root.replace(/\s(?:width|height)\s*=\s*("[^"]*"|'[^']*')/g, '').replace(/^<svg\b/, `<svg width="${DIAGRAM_WIDTH}" height="${height}"`),
+  )
+
+  return { source, width: DIAGRAM_WIDTH, height }
+}
 
 const unsent = (t: Tour): PendingDecision[] => (t.pendingDecisions ?? []).filter(d => !d.isSent)
 const decisionsLine = (pending: PendingDecision[]): string =>
@@ -414,7 +423,7 @@ export const register: Register = (on, options) => {
       )
     }
     // the markup of each open stage's diagram; a file that cannot be read leaves the alt text
-    const stageSvgs = new Map<string, string>()
+    const stageSvgs = new Map<string, ReturnType<typeof sized>>()
     if (state && !onTerminal) {
       await Promise.all(
         state.stages
@@ -424,7 +433,7 @@ export const register: Register = (on, options) => {
               const markup = await $.fs.read(s.diagram!.svg!)
               // the Svg element takes at most 131072 characters
               if (typeof markup === 'string' && markup.length <= 131072) {
-                stageSvgs.set(s.name, widened(markup))
+                stageSvgs.set(s.name, sized(markup))
               }
             } catch {
               // the alt text is drawn
@@ -450,7 +459,7 @@ export const register: Register = (on, options) => {
         />
       ) : !onTerminal && svg && Svg ? (
         // the sandboxed frame runs SMIL and CSS animation and hover; it never runs script
-        <Svg source={svg} alt={d.alt} isInteractive />
+        <Svg source={svg.source} width={svg.width} height={svg.height} alt={d.alt} isInteractive />
       ) : (
         <Text dimColor italic>{d.alt}</Text>
       )
