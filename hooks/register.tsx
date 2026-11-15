@@ -136,7 +136,7 @@ export const register: Register = (on, options) => {
                       type: 'object',
                       description: 'this stage\'s own diagram, shown under the summary. Send one only where a picture tells the reader something the summary does not, in the type that fits the stage (sequence, state, before and after, flowchart); none for a well-known mechanism or a list. Write the file first, by hand, as the skill\'s "Stage rows" section says. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
                       properties: {
-                        svg: { type: 'string', description: 'absolute path; standalone SVG with a viewBox, explicit colours, no foreignObject, no script, no CSS variables, at most 131072 characters' },
+                        svg: { type: 'string', description: 'absolute path; standalone SVG with a viewBox, explicit colours, no foreignObject, no script, no CSS variables, at most 131072 characters; CSS and SMIL animation and hover run, so a dot may travel the path' },
                         file: { type: 'string', description: 'absolute path to a PNG' },
                         alt: { type: 'string' },
                         generation: { type: 'integer' },
@@ -446,7 +446,8 @@ export const register: Register = (on, options) => {
           alt={d.alt}
         />
       ) : !onTerminal && svg && Svg ? (
-        <Svg source={svg} alt={d.alt} />
+        // the sandboxed frame runs SMIL and CSS animation and hover; it never runs script
+        <Svg source={svg} alt={d.alt} isInteractive />
       ) : (
         <Text dimColor italic>{d.alt}</Text>
       )

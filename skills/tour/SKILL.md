@@ -438,11 +438,57 @@ these rows and never open a stage in the chat. So every stage carries its conten
   same kind of picture is a sign the type was not chosen. Write the files before the first
   `set`, not when the reader reaches the stage. Write a
   standalone SVG file to `<scratchpad>/walk-pr-<id>-<stage>.svg` and pass
-  `diagram: { svg: <absolute path>, alt: <one line> }`. The pane draws the file as an image,
-  so the SVG holds everything it needs:
+  `diagram: { svg: <absolute path>, alt: <one line> }`. The pane draws the file in a
+  sandboxed frame that runs CSS and SMIL animation and hover and never runs script, so the
+  SVG holds everything it needs:
   - a `viewBox`, width about 600, and no `width` or `height` attribute;
-  - only `rect`, `line`, `path`, `polygon`, `text` and `marker`; no `foreignObject`, no
-    `script`, no `style` element, no CSS variables, no external font or image;
+  - `rect`, `circle`, `ellipse`, `line`, `path`, `polygon`, `text`, `marker`, `g`, `title`, one `style`
+    element, and `animate`, `animateMotion` and `animateTransform`; no `foreignObject`, no
+    `script`, no event-handler attribute, no CSS variables, no external font or image;
+  - one visual grammar, the same in every diagram of the tour. A shape says what kind of
+    thing a node is, and a line style says what an arrow means:
+
+    | Thing | Shape |
+    | --- | --- |
+    | A part that runs code: a service, a worker, a function | rounded rectangle, filled |
+    | Data that moves: a record, a request, a message, a key | small pill with a thin outline and no fill, drawn on its arrow or beside the part that holds it, text in a monospace font |
+    | A store: a database, a cache, a queue, a file | cylinder (a rectangle with an ellipse on top), or an open-ended box for a queue |
+    | Something outside the system: a user, a vendor API | rectangle with a dashed outline |
+    | A decision or a rule | diamond, with one labelled arrow per outcome |
+
+    | Arrow | Meaning |
+    | --- | --- |
+    | solid line, filled head | data flows this way; the label is the data |
+    | dashed line, open head | a call or a read with no data moved to the target: a lookup, a dependency, a check |
+    | dotted line, no head | belongs to or is derived from, with no runtime flow |
+
+    A fact about a node (a value, a condition, "as today") is a line of small text inside or
+    under that node, never a box of its own. A node with no arrow is an error: connect it
+    or make it a text line. A node carries colour only for its status: purple for new or
+    changed, coral for removed or faulty, gray for existing. Shape never carries status and
+    colour never carries kind.
+  - one concrete input, with real example values, goes through the whole picture from the
+    left or the top. Each data pill shows the value at that point, so the reader sees what
+    changes along the way (`ID 42, hash 84` in, `key 99/100` out);
+  - a legend row at the bottom with one sample of each shape, arrow style and colour the
+    diagram uses, and no others;
+  - before the file is sent, read it as the reader will: say in one sentence what each arrow
+    means. Two arrows of one style with two meanings, or two kinds of thing in one shape,
+    mean the diagram is redrawn;
+  - motion only where it carries meaning:
+    - one dot that travels the path the input takes, with `animateMotion` along the same
+      `path` the arrow uses, 3 to 6 seconds, `repeatCount="indefinite"`;
+    - in a sequence diagram, the messages appear in order, each with a `begin` offset, and
+      the cycle repeats after a pause;
+    - in a before and after pair, the dot stops or turns coral at the faulty node on the
+      before side and passes on the after side;
+    - a slow pulse on the one node the stage changes.
+
+    At most two moving things at once. Nothing blinks, and nothing moves that the summary
+    does not talk about. The picture must read correctly as a still: an editor draws it
+    with no hover, and a reader may look at any moment of the cycle;
+  - a `title` child on a node for a one-line tooltip, and a `:hover` style that brightens
+    the node's stroke; no fact lives only in a tooltip;
   - explicit hex colours from the stage ramps under "Rendering", and `#888780` for edges and
     edge labels, so the picture reads on a dark and on a light pane;
   - `font-family="sans-serif"`, text size 13 or more, at most 8 nodes, 6 lifelines or 6
@@ -793,6 +839,8 @@ Diagram rules:
 
 - A diagram explains one path with one concrete input travelling its edges. Edge labels carry the
   data or the call; the node that fails or changes carries a short label saying how.
+- Every diagram, in the chat and in the pane, uses the visual grammar under "Stage rows":
+  shape by kind of thing, line style by meaning of the arrow, colour by status, a legend.
 - Cap a diagram at about 8 nodes, 6 participants or 6 states; split it before it gets bigger.
 - Sequence and state diagrams use the same ramps: coral for the faulty message or state,
   purple for a new one, gray for the existing path. In Mermaid, `sequenceDiagram` and

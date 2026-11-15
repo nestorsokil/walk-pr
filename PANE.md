@@ -26,7 +26,8 @@ context on a typed message; after that the next `set` call is the record.
 
 Stage rows, in both modes: a click on a stage's name opens and closes it; rows start closed.
 An open row shows the stage's `summary` (Markdown), its `diagram` (`svg`, a path to a
-standalone SVG file, drawn with the `Svg` element off the terminal; `file`, a PNG, drawn
+standalone SVG file, drawn with the `Svg` element and `isInteractive` off the terminal, so
+CSS and SMIL animation and hover run and script does not; `file`, a PNG, drawn
 with `Image` on a terminal; the `alt` text when neither draws), Explain more
 (`walk-pr: go to <stage name>`) and Ack. Ack is held in the pane and rides along on the next
 message as `(stages: <name> ack, <name> unack)`, joined to the findings suffix with `; `. A
