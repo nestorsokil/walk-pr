@@ -107,8 +107,8 @@ before the next stage starts.
    puts it out of scope. The overview waits for this step.
 5. **Classify** as the tour does: **bug fix**, **feature**, or **refactor**, and the
    complexity by the same thresholds applied to the estimated change.
-6. **Write the plan file** `<scratchpad>/walk-pr-build-<id>.md` (`<id>` is the issue ID or
-   a slug of the title). It is the artifact the Open plan button opens and the run executes;
+6. **Write the plan file** `~/.claude/walk-pr/builds/<id>.md` (`<id>` is the issue ID or
+   a slug of the title; create the directory). Another session can read it there. It is the artifact the Open plan button opens and the run executes;
    keep it readable by a person. Sections:
    - **Problem**: the symptom or the unmet use case, the path where it happens, in the
      tour's Problem-stage terms.
@@ -232,9 +232,10 @@ As the tour's phases 3 to 5, with the plan file as the source instead of a diff:
 The finish of the tour, with `isFinished: true`:
 
 1. `set` with every decision and its `chosen`, the stages with their commit counts, and
-   `prompts` empty; one line: "Decide the open ones in the pane, then approve the plan."
-2. **Approve plan** with open decisions: nothing starts; say which are open in one line. The
-   reader decides in the pane or in words ("3: option 2").
+   `prompts` empty; one line: "Decide the open ones in the pane, then run the plan."
+   The pane's Run button sends `approve plan`; Run in VS Code sends `approve plan in editor`.
+2. **Approve plan**, either form, with open decisions: nothing starts; say which are open in
+   one line. The reader decides in the pane or in words ("3: option 2").
 3. **Revise plan: <instruction>** rewrites the plan as instructed, re-plans, `set`, one line.
 4. **Approve plan** with every decision made: write the final plan file, then
    - Tracker, when connected: mark the issue in progress and comment the scope in two or
@@ -247,7 +248,30 @@ The finish of the tour, with `isFinished: true`:
      branch that already holds other work.
    - `set` with `outcome` absent, `isFinished: false`, the first stage `running`, and go to
      the run in the same turn.
-5. **Stop here**: `set` with `outcome.label` "Plan not started" and the plan file path in
+5. **Approve plan in editor** with every decision made: the reader wants to follow the
+   implementer and steer it. Do the tracker and branch parts of step 4, then, in place of
+   the run:
+   - Write the implementer's brief to `~/.claude/walk-pr/builds/<id>-brief.md`. It holds
+     what the run's brief holds, for every stage in order, and the plan file's path. It
+     adds these rules: one session implements every stage; a question the run would return
+     goes to the reader in that session, and an answer that is a decision is written into
+     the plan file's Decisions; after each commit, write its short SHA and any deviation
+     into the plan file's State; after the last stage, run the plan's Verification section
+     and write what ran and the result into State; never push and never open a PR; at the
+     end, tell the reader to press Resume build in the pane.
+   - Open the worktree in VS Code and wait for the command to return: `code <worktree path>`.
+     Then open a Claude tab there with the prompt filled in:
+     `open "vscode://anthropic.claude-code/open?prompt=<URL-encoded prompt>"` (`xdg-open` on
+     Linux). The prompt is one line: `[VS Code] <id> implement: read <brief path> and follow
+     it.` The link acts on the focused window and does not submit the prompt, so the folder
+     opens first and the reader presses Enter. The session takes its title from that line.
+   - `code` missing, or the link fails: say so, and print the prompt for the reader to paste
+     into a session opened in the worktree.
+   - `set` with `isFinished: true`, `outcome.label` "Running in VS Code", every stage
+     `pending`. One line: the worktree path, that the prompt waits for Enter in VS Code,
+     that `opus` is the model to pick there, and that Resume build continues here once the
+     implementer is done. End the turn. Nothing else runs in this session until then.
+6. **Stop here**: `set` with `outcome.label` "Plan not started" and the plan file path in
    the one line; the plan file stays for a later resume.
 
 ## Phase 7: Run
@@ -370,12 +394,20 @@ checks what comes back, and owns every decision.
 
 ## Resume
 
-`/walk-pr:build` with an existing plan file for the target, or Resume tour from the pane,
+`/walk-pr:build` with an existing plan file for the target, or Resume build from the pane,
 reads the plan file's State section and continues where it stopped: in the plan tour at
 the last checkpoint, in the run at the first commit not yet made (after checking the branch
 head matches the recorded SHA; a moved head is reported and the run continues from the
 branch as it is), at the finish from the step not yet done. A plan whose branch no longer
 exists goes back to approval.
+
+A resume after "Running in VS Code" reads the plan file and the branch as the editor
+session left them. Check every stage as "A stage returns" in the run says, with the
+deviations and decisions from the State section, and `set` with the stages and their
+commits. Commits of the plan that are missing: say which in one line and ask whether to
+make them here, with the run from that commit, or to go back to the editor. Every stage
+done: go to the finish. Its Verify step is skipped when State records it for the current
+head SHA.
 
 ## Fixed actions
 
@@ -384,8 +416,9 @@ The tour's actions apply (`next`, `go to`, `finish`, `finding <n> ...`, `explain
 
 - `finding <n> option <k>` — record the choice, re-plan, confirm in one line, `set`.
 - `approve plan` — Phase 6 step 4.
+- `approve plan in editor` — Phase 6 step 5.
 - `revise plan: <instruction>` — Phase 6 step 3.
-- `done` — Phase 6 step 5 during the plan; after the run, `set` with the outcome as it
+- `done` — Phase 6 step 6 during the plan; after the run, `set` with the outcome as it
   stands.
 - `review round` — Phase 8 step 6 once more, with the next round number.
 - `verify finding <n>` on a criterion — Phase 8 step 2 for that criterion alone. Before the

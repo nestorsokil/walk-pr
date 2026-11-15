@@ -32,7 +32,9 @@ PR step have not been through a real ticket yet. Expect rough edges there.
 Same pane, other direction. The tour walks a plan instead of a diff: problem, approach, then
 one stage per part to build, each with its commits. Every design choice is a decision with
 options in the pane; the recommended one is marked, nothing is picked for you. Corrections in
-chat re-plan the stages they touch. Open plan opens the plan file. Approve plan marks the
+chat re-plan the stages they touch. Open plan opens the plan file. Run in VS Code hands
+the implementation to a session in the editor that you follow and steer; Resume build then
+checks its commits and goes on from the verification. Run marks the
 issue in progress when a tracker is connected, branches in a
 worktree and implements commit by commit, each with its own
 focused test; the heavy verification runs once at the end, a draft PR opens and is driven to
