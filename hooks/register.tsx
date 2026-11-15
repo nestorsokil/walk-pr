@@ -47,6 +47,9 @@ const tourId = (t: Tour): string => t.url ?? t.title
 const isSameTour = (a: Tour, b: Tour): boolean => tourId(a) === tourId(b)
 
 const isCriterion = (f: { label: string }): boolean => f.label === 'criterion'
+// The pane draws an SVG at its own width up to the slot; a root with no width draws at 300px.
+const widened = (svg: string): string =>
+  svg.replace(/<svg\b[^>]*>/, root => root.replace(/\s(?:width|height)\s*=\s*("[^"]*"|'[^']*')/g, '').replace(/^<svg\b/, '<svg width="1200"'))
 
 const unsent = (t: Tour): PendingDecision[] => (t.pendingDecisions ?? []).filter(d => !d.isSent)
 const decisionsLine = (pending: PendingDecision[]): string =>
@@ -421,7 +424,7 @@ export const register: Register = (on, options) => {
               const markup = await $.fs.read(s.diagram!.svg!)
               // the Svg element takes at most 131072 characters
               if (typeof markup === 'string' && markup.length <= 131072) {
-                stageSvgs.set(s.name, markup)
+                stageSvgs.set(s.name, widened(markup))
               }
             } catch {
               // the alt text is drawn

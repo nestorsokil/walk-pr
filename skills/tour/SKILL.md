@@ -495,6 +495,11 @@ these rows and never open a stage in the chat. So every stage carries its conten
     states; every arrow carries a label with the data or the call;
   - at most 131072 characters.
 
+  Never open a diagram file in a browser, an editor or any other window to check it, and
+  never send it to the reader as a file: the pane is the one place it shows. Check the file
+  by reading its text. The pane scales the drawing to its own width, so text in a 600-wide
+  `viewBox` shows at about twice its size.
+
   Do not use Mermaid output here: its labels are `foreignObject` and do not draw. On a
   terminal, also render a PNG as "Rendering" describes and pass it as `diagram.file` with
   `columns` and `rows`. Raise `generation` each time a file changes.
