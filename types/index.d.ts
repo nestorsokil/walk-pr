@@ -14,7 +14,23 @@ export type Stage = {
   fixed?: number
   isRequired?: boolean
   commits?: string[]
+  summary?: string
+  diagram?: StageDiagram
+  isAcked?: boolean
 }
+
+// A stage's own diagram: svg is drawn in the desktop pane, file (a PNG) on a terminal.
+export type StageDiagram = {
+  svg?: string
+  file?: string
+  alt: string
+  generation?: number
+  columns?: number
+  rows?: number
+}
+
+// An Ack click in the pane until the skill has been told about it.
+export type PendingAck = { name: string; isAcked: boolean; isSent: boolean }
 
 // A choice the reader makes on a build decision; chosen is the index into options.
 export type Option = { label: string; note?: string; isRecommended?: boolean }
@@ -46,7 +62,7 @@ export type Verification = { state: 'running' | 'confirmed' | 'refuted' | 'incon
 export type PendingDecision = { n: number; decision?: Decision; chosen?: number; isSent: boolean }
 
 // Which collapsible sections of the pane are open; absent means closed.
-export type Sections = { criteria?: boolean; decisions?: boolean }
+export type Sections = { criteria?: boolean; decisions?: boolean; stages?: Record<string, boolean> }
 
 export type Tour = {
   mode?: Mode
@@ -67,6 +83,7 @@ export type Tour = {
   isFinished?: boolean
   isBusy?: boolean
   pendingDecisions?: PendingDecision[]
+  pendingAcks?: PendingAck[]
   outcome?: { label: string; url?: string }
   diagram?: Diagram
 }

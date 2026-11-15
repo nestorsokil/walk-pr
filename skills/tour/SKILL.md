@@ -197,7 +197,8 @@ Say one line before gathering ("Reading PR 1234, 18 files"), then nothing until 
 
 One message: a short overview, then the menu. With the pane tool (`mcp__walk-pr__set`):
 call it with the full tour, `url` = the PR page, `author`, `links` and `size` for a PR target, `complexity`, every
-stage `pending` with its `severe` and `minor` counts, every finding from the review with its
+stage `pending` with its `severe` and `minor` counts and its `summary` and `diagram` (see
+"Stage rows: summary, diagram, ack"), every finding from the review with its
 `stage` and decision `later`, `prompts` empty, and `nextLabel` set to the Problem stage's name,
 so the pane's Next button starts the tour. Keep `url`, `author`, `links`, `size` and `complexity` in every later `set`. With `show_widget`
 only: the menu widget (widgets.md, template 1). With neither: a text block plus AskUserQuestion
@@ -393,6 +394,7 @@ prompts, and Next and Finish.
 
 With the pane: call `mcp__walk-pr__set` first, before any prose of the stage message, with the
 whole tour state: `title`, `url`, `author`, `links`, `kind`, `complexity`, `size`, `verdict`, every stage (`name`, `role`, `state`,
+`summary`, `diagram`, `isAcked` when the reader acked it,
 `severe` = count of `issue` findings, `minor` = count of `question`, `suggestion` and
 `nitpick` findings, `concerns` = `severe` + `minor`; `pre-existing` findings are shown but
 counted nowhere, and the verdict's concern count leaves them out too), every `finding` found so
@@ -406,6 +408,47 @@ not also render the checkpoint widget; diagrams still go through `show_widget`. 
 transcript folds text written before a tool call, so every tool call in a stage message (the
 `set`, a `show_widget`, a file read) comes before the prose, never between or after it. End
 the message with one neutral line such as "Pick where to go next in the pane."
+
+### Stage rows: summary, diagram, ack
+
+Each stage row in the pane opens with a click. The open row shows the stage's `summary`, its
+`diagram`, and two buttons: Explain more and Ack. The reader can read the whole tour from
+these rows and never open a stage in the chat. So every stage carries its content in every
+`set` call, from the first one in Phase 2.
+
+- **`summary`**: two to four sentences of Markdown. What this part of the change is, what it
+  changes for a user or operator, and the one thing to check or remember. Same voice as the
+  overview card: product words first, at most one identifier in backticks. No finding text;
+  the chips and the findings list carry the findings.
+- **`diagram`**: one per stage whenever "Which diagram" picks one for that stage. Write a
+  standalone SVG file to `<scratchpad>/walk-pr-<id>-<stage>.svg` and pass
+  `diagram: { svg: <absolute path>, alt: <one line> }`. The pane draws the file as an image,
+  so the SVG holds everything it needs:
+  - a `viewBox`, width about 600, and no `width` or `height` attribute;
+  - only `rect`, `line`, `path`, `polygon`, `text` and `marker`; no `foreignObject`, no
+    `script`, no `style` element, no CSS variables, no external font or image;
+  - explicit hex colours from the stage ramps under "Rendering", and `#888780` for edges and
+    edge labels, so the picture reads on a dark and on a light pane;
+  - `font-family="sans-serif"`, text size 13 or more, at most 8 nodes;
+  - at most 131072 characters.
+
+  Do not use Mermaid output here: its labels are `foreignObject` and do not draw. On a
+  terminal, also render a PNG as "Rendering" describes and pass it as `diagram.file` with
+  `columns` and `rows`. Raise `generation` each time a file changes.
+- **Revise on every turn.** Before each `set`, check each stage's `summary` and `diagram`
+  against what is now true: a new or dropped finding, a verification result, a pushed
+  commit, an answer that corrected the picture. Rewrite the ones that are stale. When a
+  rewrite changes what the stage says in substance, send `isAcked: false` for that stage,
+  and say so in one line. A wording fix keeps the ack.
+- **Acks.** An Ack click sends nothing by itself. It arrives with the next message as
+  `(stages: <name> ack, <name> unack)`, or as hidden context on a typed message. Record
+  each one in the tour file. Send `isAcked: true` for every acked stage in every later
+  `set`; leave the field out for the others. Never set `isAcked: true` for a stage the
+  reader did not ack.
+- **Explain more** sends `go to <stage>`: the full stage message in the chat, as Phases 3 to
+  5 describe. A stage shown in the chat is not acked by that; only the Ack click acks it.
+- **Stages not seen** are the stages without an ack, whatever their `state`. The finish
+  counts and names those.
 
 Then end the turn and wait. A click arrives as the next user message: a `walk-pr: ...` line, or
 the text of a contextual prompt. Any other message is a question on the current stage or a plan
@@ -584,7 +627,7 @@ already shows every finding with its comment, and the reader has seen the stages
    into the body the same way and post once more, so the review always lands. A finding
    posted in the body is recorded with `posted: true` and no comment id.
    Apart from that disagreement, every verdict button posts at once, whatever the state:
-   stages not shown, no raised findings. The pane already lists the stages not shown.
+   stages not acked, no raised findings. The pane already lists the stages not acked.
    Nothing else is asked in chat before posting. GitHub refuses approving your own PR; say
    so and offer Comment.
    Report with a short brief: the verdict, the review link, and one line per posted comment

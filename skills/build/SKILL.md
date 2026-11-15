@@ -158,7 +158,7 @@ before the next stage starts.
      run when the change is observable there, and how.
    - **Out of scope**: what the ticket asks that the plan leaves out, and why.
    - **State**: phase, head SHA of the branch when it exists, per-stage status and commit
-     SHAs, per-decision choice, per-criterion proof result, the deviations from the plan,
+     SHAs, per-stage ack, per-decision choice, per-criterion proof result, the deviations from the plan,
      the review findings and their decisions.
    The tour file for the pane is the same file; one file, not two.
 7. **Criteria become findings.** Each criterion is a finding with `label: criterion`, no
@@ -183,7 +183,7 @@ One message: the overview card, then the menu, as the tour's Phase 2 with these 
 
 - `set` with `mode: "build"`, `plan: { file }`, `links` = the issue first when it has a URL, `kind`,
   `complexity`, no `url` and no `size` yet, every stage `pending` with `concerns` = its
-  decision count, every criterion and every decision as a finding, `nextLabel` = the
+  decision count and with its `summary` and `diagram`, every criterion and every decision as a finding, `nextLabel` = the
   Problem stage.
 - The card's chip row: the kind, the complexity, the ticket state, a chip per stage count,
   per criterion count and per decision count. The verdict line says what will be built in
@@ -227,6 +227,20 @@ As the tour's phases 3 to 5, with the plan file as the source instead of a diff:
 - A new decision can surface during the tour, from a question or a correction; it is
   recorded as a finding with options the same way, attached to the current stage.
 - Nothing is implemented in these phases.
+
+### Stage rows: summary, diagram, ack
+
+As the tour's section of the same name, with these differences:
+
+- A stage's `summary` says what will be built, not what a diff contains. The Criteria
+  stage's summary is the count of criteria and how they are proven, in one or two sentences.
+- Rewrite a stage's `summary` and `diagram`, and send `isAcked: false`, after each of these:
+  a decision pick or a correction that re-plans the stage, a deviation in the run that
+  changes what the stage built, and a polish fix that changes its behaviour.
+- During the run and after it, the `summary` says what was built and what its commits
+  proved. A stage whose result matches the plan the reader acked keeps its ack.
+- At the plan's finish and at the final report, name the stages not acked in one line. Run
+  is not blocked by them.
 
 ## Phase 6: Approve the plan
 

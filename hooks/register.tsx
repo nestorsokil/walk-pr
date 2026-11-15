@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Area, Decision, PendingDecision, Sections, Tour } from '../types'
+import type { Area, Decision, PendingAck, PendingDecision, Sections, Stage, Tour } from '../types'
 
 const PANE = 'walk-pr'
 const TITLE = 'PR tour'
@@ -51,7 +51,20 @@ const isCriterion = (f: { label: string }): boolean => f.label === 'criterion'
 const unsent = (t: Tour): PendingDecision[] => (t.pendingDecisions ?? []).filter(d => !d.isSent)
 const decisionsLine = (pending: PendingDecision[]): string =>
   pending.map(d => (d.chosen !== undefined ? `${d.n} option ${d.chosen + 1}` : `${d.n} ${d.decision}`)).join(', ')
-const markSent = (t: Tour): Tour => ({ ...t, pendingDecisions: (t.pendingDecisions ?? []).map(d => ({ ...d, isSent: true })) })
+const unsentAcks = (t: Tour): PendingAck[] => (t.pendingAcks ?? []).filter(a => !a.isSent)
+const acksLine = (acks: PendingAck[]): string => acks.map(a => `${a.name} ${a.isAcked ? 'ack' : 'unack'}`).join(', ')
+// what the reader did in the pane since the last message: findings decided, stages acked
+const pendingParts = (t: Tour): string[] => {
+  const decisions = unsent(t)
+  const acks = unsentAcks(t)
+
+  return [decisions.length > 0 ? `findings: ${decisionsLine(decisions)}` : '', acks.length > 0 ? `stages: ${acksLine(acks)}` : ''].filter(p => p !== '')
+}
+const markSent = (t: Tour): Tour => ({
+  ...t,
+  pendingDecisions: (t.pendingDecisions ?? []).map(d => ({ ...d, isSent: true })),
+  pendingAcks: (t.pendingAcks ?? []).map(a => ({ ...a, isSent: true })),
+})
 
 export const register: Register = (on, options) => {
   const paneBackground = typeof options.paneBackground === 'string' && options.paneBackground.trim() !== '' ? options.paneBackground.trim() : undefined
@@ -115,6 +128,27 @@ export const register: Register = (on, options) => {
                     minor: { type: 'integer', description: 'questions, suggestions, nitpicks in this stage; not pre-existing' },
                     fixed: { type: 'integer', description: 'findings in this stage the author fixed since they were posted' },
                     isRequired: { type: 'boolean' },
+                    summary: {
+                      type: 'string',
+                      description: 'two to four sentences, Markdown: what this stage is and the one thing to take from it. Shown when the reader opens the stage. Send it on every stage in every call, and revise it when the stage changes',
+                    },
+                    diagram: {
+                      type: 'object',
+                      description: 'this stage\'s own diagram, shown under the summary. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
+                      properties: {
+                        svg: { type: 'string', description: 'absolute path; standalone SVG with a viewBox, explicit colours, no foreignObject, no script, no CSS variables, at most 131072 characters' },
+                        file: { type: 'string', description: 'absolute path to a PNG' },
+                        alt: { type: 'string' },
+                        generation: { type: 'integer' },
+                        columns: { type: 'integer', description: 'terminal only, default 60' },
+                        rows: { type: 'integer', description: 'terminal only, default 14' },
+                      },
+                      required: ['alt'],
+                    },
+                    isAcked: {
+                      type: 'boolean',
+                      description: 'the reader pressed Ack on this stage. Omit to keep what the pane has; send false to clear it after the stage changed in substance',
+                    },
                   },
                   required: ['name', 'role', 'state', 'concerns'],
                 },
@@ -251,10 +285,17 @@ export const register: Register = (on, options) => {
           return d.chosen !== undefined ? { ...f, chosen: d.chosen } : { ...f, decision: d.decision ?? f.decision }
         }
 
+        // an ack is the reader's: it stays unless the skill sends isAcked for that stage
+        const acks = unsentAcks(prev)
+        const pendingAck = new Map(acks.map(a => [a.name, a.isAcked]))
+        const earlierAck = new Map(prev.stages.map(s => [s.name, s.isAcked]))
+
         return {
           ...incoming,
+          stages: incoming.stages.map(s => ({ ...s, isAcked: pendingAck.get(s.name) ?? s.isAcked ?? earlierAck.get(s.name) })),
           findings: incoming.findings.map(applied),
           pendingDecisions: pending,
+          pendingAcks: acks,
         }
       })
       const next_ = incoming
@@ -282,13 +323,13 @@ export const register: Register = (on, options) => {
       const isTourTurn = e.text.startsWith('walk-pr:')
       await update($, tour, cur => (cur ? { ...cur, isBusy: isTourTurn } : cur))
     }
-    const pending = unsent(t)
-    if (pending.length === 0) {
+    const parts = pendingParts(t)
+    if (parts.length === 0) {
       return next(e)
     }
     await update($, tour, cur => (cur ? markSent(cur) : cur))
 
-    return next({ ...e, context: [...(e.context ?? []), `walk-pr pane decisions since the last set: ${decisionsLine(pending)}. Record them and send them back in the next set call.`] })
+    return next({ ...e, context: [...(e.context ?? []), `walk-pr pane decisions since the last set: ${parts.join('; ')}. Record them and send them back in the next set call.`] })
   })
 
   on('session.attach', async ($, e, next) => {
@@ -354,6 +395,77 @@ export const register: Register = (on, options) => {
     const toggle = (id: 'criteria' | 'decisions') => () => {
       void update($, sections, s => ({ ...s, [id]: !s[id] }))
     }
+    const isStageOpen = (name: string): boolean => Boolean(open.stages?.[name])
+    const toggleStage = (name: string) => () => {
+      void update($, sections, s => ({ ...s, stages: { ...(s.stages ?? {}), [name]: !(s.stages ?? {})[name] } }))
+    }
+    const ack = (name: string, isAcked: boolean) => () => {
+      void update($, tour, t =>
+        t
+          ? {
+              ...t,
+              stages: t.stages.map(s => (s.name === name ? { ...s, isAcked } : s)),
+              pendingAcks: [...(t.pendingAcks ?? []).filter(a => a.name !== name), { name, isAcked, isSent: false }],
+            }
+          : t,
+      )
+    }
+    // the markup of each open stage's diagram; a file that cannot be read leaves the alt text
+    const stageSvgs = new Map<string, string>()
+    if (state && !onTerminal) {
+      await Promise.all(
+        state.stages
+          .filter(s => isStageOpen(s.name) && s.diagram?.svg)
+          .map(async s => {
+            try {
+              const markup = await $.fs.read(s.diagram!.svg!)
+              // the Svg element takes at most 131072 characters
+              if (typeof markup === 'string' && markup.length <= 131072) {
+                stageSvgs.set(s.name, markup)
+              }
+            } catch {
+              // the alt text is drawn
+            }
+          }),
+      )
+    }
+    // elements differ by surface; one that this surface lacks falls back to text
+    const elements = $.ui.resolve(e) as unknown as Record<string, any>
+    const stageBody = (s: Stage) => {
+      const Markdown = elements.Markdown
+      const Svg = elements.Svg
+      const Image = elements.Image
+      const d = s.diagram
+      const svg = stageSvgs.get(s.name)
+      const diagram = !d ? null : onTerminal && d.file && Image ? (
+        <Image
+          key={`stage-diagram:${s.name}`}
+          source={{ file: d.file, format: 'png', generation: d.generation }}
+          columns={d.columns ?? 60}
+          rows={d.rows ?? 14}
+          alt={d.alt}
+        />
+      ) : !onTerminal && svg && Svg ? (
+        <Svg source={svg} alt={d.alt} />
+      ) : (
+        <Text dimColor italic>{d.alt}</Text>
+      )
+
+      return (
+        <Box flexDirection="column" paddingLeft={4} marginBottom={1} gap={1}>
+          {!s.summary ? <Text dimColor>No summary yet.</Text> : !onTerminal && Markdown ? <Markdown text={s.summary} /> : <Text>{s.summary}</Text>}
+          {diagram}
+          <Box gap={1}>
+            <Button key={`explain-stage:${s.name}`} onPress={send(`walk-pr: go to ${s.name}`)}>
+              Explain more
+            </Button>
+            <Button key={`ack:${s.name}`} variant={s.isAcked ? 'primary' : 'secondary'} onPress={ack(s.name, !s.isAcked)}>
+              {s.isAcked ? '✓ Acked' : 'Ack'}
+            </Button>
+          </Box>
+        </Box>
+      )
+    }
     const decide = (n: number, decision: Decision) => () => {
       void update($, tour, t =>
         t
@@ -417,8 +529,8 @@ export const register: Register = (on, options) => {
       if (!t || t.isBusy) {
         return
       }
-      const pending = unsent(t)
-      const suffix = pending.length > 0 ? ` (findings: ${decisionsLine(pending)})` : ''
+      const parts = pendingParts(t)
+      const suffix = parts.length > 0 ? ` (${parts.join('; ')})` : ''
       await update($, tour, cur => (cur ? { ...markSent(cur), isBusy: true } : cur))
       const unlock = (reason: string) => {
         void update($, tour, cur => (cur ? { ...cur, isBusy: false } : cur))
@@ -448,7 +560,8 @@ export const register: Register = (on, options) => {
     }
 
     const current = state.stages.find(s => s.state === 'current' || s.state === 'running' || s.state === 'blocked')
-    const unseen = state.stages.filter(s => s.state !== 'done')
+    // a stage counts as seen only when the reader acked it
+    const unseen = state.stages.filter(s => !s.isAcked)
     const busy = state.isBusy === true
     const closed = state.outcome !== undefined
     const canApproveAfterOutcome = closed && !['Approved', 'Merged', 'Closed'].includes(state.outcome!.label)
@@ -557,10 +670,11 @@ export const register: Register = (on, options) => {
                   <Text backgroundColor={stageColor(s)}> </Text>
                   <Text color={markColor}>{mark}</Text>
                   <Box width={nameWidth}>
-                    <Button key={`stage:${s.name}`} dimColor={isPast || (onTerminal && !isCurrent)} onPress={send(`walk-pr: go to ${s.name}`)}>
-                      {label(s)}
+                    <Button key={`stage:${s.name}`} dimColor={isPast || (onTerminal && !isCurrent)} onPress={toggleStage(s.name)}>
+                      {`${isStageOpen(s.name) ? '▾' : '▸'} ${label(s)}`}
                     </Button>
                   </Box>
+                  {s.isAcked && <Chip color="success" label="acked" />}
                   {s.state === 'blocked' && <Chip color="error" label="waiting on a decision" />}
                   {counts.fixed > 0 && <Chip color="success" label={`${counts.fixed} fixed`} />}
                   {counts.severe > 0 && <Chip color="error" label={`${counts.severe} severe`} />}
@@ -581,6 +695,7 @@ export const register: Register = (on, options) => {
                     </Box>
                   )
                 })}
+                {isStageOpen(s.name) && stageBody(s)}
               </Box>
             )
           })}
@@ -826,9 +941,9 @@ export const register: Register = (on, options) => {
           </Box>
         )}
 
-        {state.isFinished && !closed && !isBuild && unseen.length > 0 && (
+        {state.isFinished && !closed && unseen.length > 0 && (
           <Text color="warning">
-            {unseen.length} of {state.stages.length} stages not shown: {unseen.map(s => s.name).join(', ')}
+            {unseen.length} of {state.stages.length} stages not acked: {unseen.map(s => s.name).join(', ')}
           </Text>
         )}
         {state.isFinished && !closed && isBuild && undecided.length > 0 && (

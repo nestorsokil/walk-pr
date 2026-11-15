@@ -24,6 +24,15 @@ Raise, Drop and an option pick are held in the pane as pending decisions and rid
 the next message, as the suffix `(findings: 1 raise, 3 option 2)` on a click or as hidden
 context on a typed message; after that the next `set` call is the record.
 
+Stage rows, in both modes: a click on a stage's name opens and closes it; rows start closed.
+An open row shows the stage's `summary` (Markdown), its `diagram` (`svg`, a path to a
+standalone SVG file, drawn with the `Svg` element off the terminal; `file`, a PNG, drawn
+with `Image` on a terminal; the `alt` text when neither draws), Explain more
+(`walk-pr: go to <stage name>`) and Ack. Ack is held in the pane and rides along on the next
+message as `(stages: <name> ack, <name> unack)`, joined to the findings suffix with `; `. A
+`set` keeps a stage's ack unless it sends `isAcked` for that stage. At the finish the pane
+names the stages not acked.
+
 Build mode (`mode: "build"`, from `skills/build/SKILL.md`): findings carry `options`, drawn
 as one button each with the recommended one primary until a pick; Raise and Drop read Fix
 and Skip; stages may be `running` or `blocked` and list their `commits`; `plan.file` adds an
