@@ -421,8 +421,21 @@ these rows and never open a stage in the chat. So every stage carries its conten
   changes for a user or operator, and the one thing to check or remember. Same voice as the
   overview card: product words first, at most one identifier in backticks. No finding text;
   the chips and the findings list carry the findings.
-- **`diagram`**: one per stage. Problem and Solution always have one. A concept stage has
-  one unless "Which diagram" finds nothing to draw for it. Write the files before the first
+- **`diagram`**: only where a picture tells the reader something the summary does not. Pick
+  per stage with "Which diagram", and draw the type it picks:
+  - a sequence diagram (lifelines and ordered arrows) when the stage is about order, timing,
+    retries or a race;
+  - a state diagram when one entity moves between named states;
+  - a before and after pair, side by side or stacked in one file, when a part is added,
+    removed or rewired;
+  - a flowchart for one input through several parts;
+  - a decision table goes into the `summary` as a Markdown table, with no `diagram`.
+
+  A set of boxes with no arrows between them is a list, not a diagram: leave it out. Send no
+  `diagram` when the stage is a mechanism every engineer knows (a feature flag, a config
+  block, a retry with backoff, a cache with a time to live, wiring), a list of items
+  (criteria, tests, files), or one rule in one component. A tour where every stage has the
+  same kind of picture is a sign the type was not chosen. Write the files before the first
   `set`, not when the reader reaches the stage. Write a
   standalone SVG file to `<scratchpad>/walk-pr-<id>-<stage>.svg` and pass
   `diagram: { svg: <absolute path>, alt: <one line> }`. The pane draws the file as an image,
@@ -432,7 +445,8 @@ these rows and never open a stage in the chat. So every stage carries its conten
     `script`, no `style` element, no CSS variables, no external font or image;
   - explicit hex colours from the stage ramps under "Rendering", and `#888780` for edges and
     edge labels, so the picture reads on a dark and on a light pane;
-  - `font-family="sans-serif"`, text size 13 or more, at most 8 nodes;
+  - `font-family="sans-serif"`, text size 13 or more, at most 8 nodes, 6 lifelines or 6
+    states; every arrow carries a label with the data or the call;
   - at most 131072 characters.
 
   Do not use Mermaid output here: its labels are `foreignObject` and do not draw. On a

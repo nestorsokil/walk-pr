@@ -134,7 +134,7 @@ export const register: Register = (on, options) => {
                     },
                     diagram: {
                       type: 'object',
-                      description: 'this stage\'s own diagram, shown under the summary. Send one for every stage that has a path, a boundary or a before and after to draw; write the file first, by hand, as the skill\'s "Stage rows" section says. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
+                      description: 'this stage\'s own diagram, shown under the summary. Send one only where a picture tells the reader something the summary does not, in the type that fits the stage (sequence, state, before and after, flowchart); none for a well-known mechanism or a list. Write the file first, by hand, as the skill\'s "Stage rows" section says. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
                       properties: {
                         svg: { type: 'string', description: 'absolute path; standalone SVG with a viewBox, explicit colours, no foreignObject, no script, no CSS variables, at most 131072 characters' },
                         file: { type: 'string', description: 'absolute path to a PNG' },
@@ -605,6 +605,225 @@ export const register: Register = (on, options) => {
     const decisionChip = (d: string) =>
       d === 'raise' ? <Chip color="error" label="raised" /> : d === 'drop' ? <Chip color="inactive" label="dropped" /> : <Chip color="warning" label={d} />
 
+    const findingsBlock = (part: 'criteria' | 'rest') => {
+        const hereFirst = (list: Tour['findings']) => [...list].sort((a, b) => Number(isHere(b)) - Number(isHere(a)))
+        const card = (f: Tour['findings'][number]) => {
+          const criterion = isCriterion(f)
+          const proofState = criterion ? f.verification?.state : undefined
+          const tone = f.label === 'issue' ? 'error' : f.label === 'pre-existing' ? 'inactive' : f.options || criterion ? 'claude' : 'warning'
+          const chosenLabel = f.options && f.chosen !== undefined ? f.options[f.chosen]?.label : undefined
+          return (
+            <Box
+              key={`finding:${f.n}`}
+              flexDirection="column"
+              marginTop={1}
+              paddingX={1}
+              borderStyle="round"
+              borderColor={proofState === 'refuted' ? 'error' : f.resolution === 'fixed' || chosenLabel || proofState === 'confirmed' ? 'success' : f.decision === 'raise' ? 'error' : f.decision === 'drop' ? 'inactive' : tone}
+              borderDimColor={f.decision === 'drop'}
+            >
+              <Box gap={1}>
+                <Chip color={tone} label={f.label} />
+                {chosenLabel && <Chip color="success" label={chosenLabel} />}
+                {f.isUnverified && !f.verification && <Chip color="inactive" label="unverified" />}
+                {f.verification && !criterion && <Chip color={verificationColor(f.verification.state)} label={verificationLabel(f.verification.state)} />}
+                {f.verification && criterion && <Chip color={proofColor(f.verification.state)} label={proofLabel(f.verification.state)} />}
+                {f.raisedBy && <Chip color="claude" label={`raised by ${f.raisedBy}`} />}
+                {f.resolution === 'fixed' && <Chip color="success" label="Fixed" />}
+                {f.resolution === 'partial' && <Chip color="warning" label="Partially fixed" />}
+                {f.thread && <Chip color="claude" label={f.thread.isResolved ? 'Thread · resolved' : `Thread · ${f.thread.replies} ${f.thread.replies === 1 ? 'reply' : 'replies'}`} />}
+                <Text dimColor>#{f.n}</Text>
+                {f.stage && isHere(f) && <Chip color="claude" label={f.stage} />}
+                {f.stage && !isHere(f) && (
+                  <Button key={`goto:${f.n}`} dimColor onPress={send(`walk-pr: go to ${f.stage}`)}>
+                    {f.stage}
+                  </Button>
+                )}
+              </Box>
+              <Text dimColor={f.decision === 'drop'}>{f.text}</Text>
+              {whereUrls.has(f.n) ? (
+                <Button key={`where:${f.n}`} dimColor onPress={openUrl(whereUrls.get(f.n)!)}>
+                  {f.where}
+                </Button>
+              ) : (
+                <Text dimColor italic>{f.where}</Text>
+              )}
+              {f.verification?.note && <Text dimColor italic>{f.verification.note}</Text>}
+              {f.verify && criterion && <Text dimColor>Proof: {f.verify}</Text>}
+              {f.verify && !f.options && !criterion && f.verification?.state !== 'running' && (
+                <Box gap={1} marginTop={1} alignItems="center">
+                  <Button key={`verify:${f.n}`} onPress={send(`walk-pr: verify finding ${f.n}`)}>
+                    {f.verification ? 'Verify again' : 'Verify'}
+                  </Button>
+                  <Text dimColor>{f.verify}</Text>
+                </Box>
+              )}
+              {f.options && (
+                <Box flexDirection="column" marginTop={1}>
+                  {f.options.map((o, i) => (
+                    <Box key={`option:${f.n}:${i}`} gap={1} alignItems="center">
+                      <Box width={Math.max(...f.options!.map(x => x.label.length)) + 6}>
+                        <Button
+                          key={`choose:${f.n}:${i}`}
+                          variant={f.chosen === i ? 'primary' : o.isRecommended && f.chosen === undefined ? 'primary' : 'secondary'}
+                          onPress={closed ? () => undefined : choose(f.n, i)}
+                        >
+                          {f.chosen === i ? `✓ ${o.label}` : o.label}
+                        </Button>
+                      </Box>
+                      {o.isRecommended && f.chosen === undefined && <Chip color="success" label="recommended" />}
+                      {o.note && <Text dimColor>{o.note}</Text>}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+              {state.isFinished && f.comment && f.decision === 'raise' && (
+                <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="single" borderColor="inactive" borderDimColor>
+                  <Text dimColor italic>{closed ? 'Posted comment' : 'Comment draft'}</Text>
+                  <Text>{f.comment}</Text>
+                  {!closed && (
+                    <Box marginTop={1}>
+                      <Button key={`edit-comment:${f.n}`} onPress={fill(`walk-pr: edit comment ${f.n}: `)}>
+                        Edit comment
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              )}
+              {f.thread && f.reply && (
+                <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="single" borderColor="claude" borderDimColor>
+                  <Text dimColor italic>Reply draft · to {f.thread.lastBy}</Text>
+                  <Text>{f.reply}</Text>
+                  <Box marginTop={1}>
+                    <Button key={`edit-reply:${f.n}`} onPress={fill(`walk-pr: edit reply ${f.n}: `)}>
+                      Edit reply
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+              {f.thread && (
+                <Box gap={1} marginTop={1}>
+                  <Button key={`thread:${f.n}`} onPress={send(`walk-pr: show thread ${f.n}`)}>
+                    View reply
+                  </Button>
+                  {f.reply && (
+                    <Button key={`reply:${f.n}`} variant="primary" onPress={send(`walk-pr: reply finding ${f.n}`)}>
+                      Post reply
+                    </Button>
+                  )}
+                  {!f.thread.isResolved && (
+                    <Button key={`resolve:${f.n}`} onPress={send(`walk-pr: resolve finding ${f.n}`)}>
+                      Resolve
+                    </Button>
+                  )}
+                </Box>
+              )}
+              {closed && f.posted && !f.raisedBy && !f.options && <Box marginTop={1}>{decisionChip(f.decision)}</Box>}
+              {closed && !f.posted && !f.raisedBy && !f.options && !criterion && (
+                <Box gap={1} marginTop={1}>
+                  <Button
+                    key={`raise:${f.n}`}
+                    variant={f.decision === 'raise' ? 'primary' : 'secondary'}
+                    onPress={decide(f.n, 'raise')}
+                  >
+                    {f.decision === 'raise' ? `✓ ${raiseLabel}` : raiseLabel}
+                  </Button>
+                  <Button
+                    key={`drop:${f.n}`}
+                    variant={f.decision === 'drop' ? 'primary' : 'secondary'}
+                    onPress={decide(f.n, 'drop')}
+                  >
+                    {f.decision === 'drop' ? `✓ ${dropLabel}` : dropLabel}
+                  </Button>
+                </Box>
+              )}
+              {!closed && (
+              <Box gap={1} marginTop={1}>
+                {!f.raisedBy && !f.options && !criterion && (
+                  <Button
+                    key={`raise:${f.n}`}
+                    variant={f.decision === 'raise' ? 'primary' : 'secondary'}
+                    onPress={decide(f.n, 'raise')}
+                  >
+                    {f.decision === 'raise' ? `✓ ${raiseLabel}` : raiseLabel}
+                  </Button>
+                )}
+                {!f.raisedBy && !f.options && !criterion && (
+                  <Button
+                    key={`drop:${f.n}`}
+                    variant={f.decision === 'drop' ? 'primary' : 'secondary'}
+                    onPress={decide(f.n, 'drop')}
+                  >
+                    {f.decision === 'drop' ? `✓ ${dropLabel}` : dropLabel}
+                  </Button>
+                )}
+                {criterion && isPlanOpen && (
+                  <Button key={`edit-criterion:${f.n}`} onPress={fill(`walk-pr: edit criterion ${f.n}: `)}>
+                    Edit
+                  </Button>
+                )}
+                {criterion && isPlanOpen && (
+                  <Button
+                    key={`drop-criterion:${f.n}`}
+                    variant={f.decision === 'drop' ? 'primary' : 'secondary'}
+                    onPress={decide(f.n, f.decision === 'drop' ? 'later' : 'drop')}
+                  >
+                    {f.decision === 'drop' ? '✓ Drop' : 'Drop'}
+                  </Button>
+                )}
+                <Button key={`explain:${f.n}`} onPress={send(`walk-pr: explain finding ${f.n}`)}>
+                  Explain more
+                </Button>
+              </Box>
+              )}
+            </Box>
+          )
+        }
+        const criteria = state.findings.filter(isCriterion)
+        const decisions = state.findings.filter(f => f.options)
+        const others = state.findings.filter(f => !isCriterion(f) && !f.options)
+        const section = (id: 'criteria' | 'decisions', title: string, list: Tour['findings']) =>
+          list.length > 0 && (
+            <Box key={`section:${id}`} flexDirection="column">
+              <Box>
+                <Button key={`toggle:${id}`} onPress={toggle(id)}>
+                  {`${open[id] ? '▾' : '▸'} ${title}`}
+                </Button>
+              </Box>
+              {open[id] && hereFirst(list).map(card)}
+            </Box>
+          )
+        const othersTitle = isBuild
+          ? 'FINDINGS'
+          : closed
+            ? 'FINDINGS'
+            : state.isFinished
+              ? 'FINDINGS · raised ones go into the review'
+              : 'CONCERNS'
+
+        if (part === 'criteria') {
+          return (
+            criteria.length > 0 && (
+              <Box flexDirection="column" paddingX={1} borderStyle="round" borderColor="claude">
+                {section('criteria', `CRITERIA · ${criteria.length}`, criteria)}
+              </Box>
+            )
+          )
+        }
+
+        return (
+          <Box flexDirection="column" gap={1}>
+            {section('decisions', `DECISIONS · ${undecided.length} open of ${decisions.length}`, decisions)}
+            {others.length > 0 && (
+              <Box flexDirection="column">
+                <Text dimColor bold>{othersTitle}</Text>
+                {hereFirst(others).map(card)}
+              </Box>
+            )}
+          </Box>
+        )
+    }
+
     return (
       <Box flexDirection="column" paddingX={1} paddingY={1} gap={1} backgroundColor={bg} minHeight="100%">
         <Box flexDirection="column">
@@ -657,6 +876,8 @@ export const register: Register = (on, options) => {
         </Box>
 
         {picture}
+
+        {state.findings.length > 0 && findingsBlock('criteria')}
 
         <Box flexDirection="column">
           <Text dimColor bold>STAGES</Text>
@@ -719,215 +940,7 @@ export const register: Register = (on, options) => {
           </Box>
         )}
 
-        {state.findings.length > 0 && (() => {
-            const hereFirst = (list: Tour['findings']) => [...list].sort((a, b) => Number(isHere(b)) - Number(isHere(a)))
-            const card = (f: Tour['findings'][number]) => {
-              const criterion = isCriterion(f)
-              const proofState = criterion ? f.verification?.state : undefined
-              const tone = f.label === 'issue' ? 'error' : f.label === 'pre-existing' ? 'inactive' : f.options || criterion ? 'claude' : 'warning'
-              const chosenLabel = f.options && f.chosen !== undefined ? f.options[f.chosen]?.label : undefined
-              return (
-                <Box
-                  key={`finding:${f.n}`}
-                  flexDirection="column"
-                  marginTop={1}
-                  paddingX={1}
-                  borderStyle="round"
-                  borderColor={proofState === 'refuted' ? 'error' : f.resolution === 'fixed' || chosenLabel || proofState === 'confirmed' ? 'success' : f.decision === 'raise' ? 'error' : f.decision === 'drop' ? 'inactive' : tone}
-                  borderDimColor={f.decision === 'drop'}
-                >
-                  <Box gap={1}>
-                    <Chip color={tone} label={f.label} />
-                    {chosenLabel && <Chip color="success" label={chosenLabel} />}
-                    {f.isUnverified && !f.verification && <Chip color="inactive" label="unverified" />}
-                    {f.verification && !criterion && <Chip color={verificationColor(f.verification.state)} label={verificationLabel(f.verification.state)} />}
-                    {f.verification && criterion && <Chip color={proofColor(f.verification.state)} label={proofLabel(f.verification.state)} />}
-                    {f.raisedBy && <Chip color="claude" label={`raised by ${f.raisedBy}`} />}
-                    {f.resolution === 'fixed' && <Chip color="success" label="Fixed" />}
-                    {f.resolution === 'partial' && <Chip color="warning" label="Partially fixed" />}
-                    {f.thread && <Chip color="claude" label={f.thread.isResolved ? 'Thread · resolved' : `Thread · ${f.thread.replies} ${f.thread.replies === 1 ? 'reply' : 'replies'}`} />}
-                    <Text dimColor>#{f.n}</Text>
-                    {f.stage && isHere(f) && <Chip color="claude" label={f.stage} />}
-                    {f.stage && !isHere(f) && (
-                      <Button key={`goto:${f.n}`} dimColor onPress={send(`walk-pr: go to ${f.stage}`)}>
-                        {f.stage}
-                      </Button>
-                    )}
-                  </Box>
-                  <Text dimColor={f.decision === 'drop'}>{f.text}</Text>
-                  {whereUrls.has(f.n) ? (
-                    <Button key={`where:${f.n}`} dimColor onPress={openUrl(whereUrls.get(f.n)!)}>
-                      {f.where}
-                    </Button>
-                  ) : (
-                    <Text dimColor italic>{f.where}</Text>
-                  )}
-                  {f.verification?.note && <Text dimColor italic>{f.verification.note}</Text>}
-                  {f.verify && criterion && <Text dimColor>Proof: {f.verify}</Text>}
-                  {f.verify && !f.options && !criterion && f.verification?.state !== 'running' && (
-                    <Box gap={1} marginTop={1} alignItems="center">
-                      <Button key={`verify:${f.n}`} onPress={send(`walk-pr: verify finding ${f.n}`)}>
-                        {f.verification ? 'Verify again' : 'Verify'}
-                      </Button>
-                      <Text dimColor>{f.verify}</Text>
-                    </Box>
-                  )}
-                  {f.options && (
-                    <Box flexDirection="column" marginTop={1}>
-                      {f.options.map((o, i) => (
-                        <Box key={`option:${f.n}:${i}`} gap={1} alignItems="center">
-                          <Box width={Math.max(...f.options!.map(x => x.label.length)) + 6}>
-                            <Button
-                              key={`choose:${f.n}:${i}`}
-                              variant={f.chosen === i ? 'primary' : o.isRecommended && f.chosen === undefined ? 'primary' : 'secondary'}
-                              onPress={closed ? () => undefined : choose(f.n, i)}
-                            >
-                              {f.chosen === i ? `✓ ${o.label}` : o.label}
-                            </Button>
-                          </Box>
-                          {o.isRecommended && f.chosen === undefined && <Chip color="success" label="recommended" />}
-                          {o.note && <Text dimColor>{o.note}</Text>}
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                  {state.isFinished && f.comment && f.decision === 'raise' && (
-                    <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="single" borderColor="inactive" borderDimColor>
-                      <Text dimColor italic>{closed ? 'Posted comment' : 'Comment draft'}</Text>
-                      <Text>{f.comment}</Text>
-                      {!closed && (
-                        <Box marginTop={1}>
-                          <Button key={`edit-comment:${f.n}`} onPress={fill(`walk-pr: edit comment ${f.n}: `)}>
-                            Edit comment
-                          </Button>
-                        </Box>
-                      )}
-                    </Box>
-                  )}
-                  {f.thread && f.reply && (
-                    <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="single" borderColor="claude" borderDimColor>
-                      <Text dimColor italic>Reply draft · to {f.thread.lastBy}</Text>
-                      <Text>{f.reply}</Text>
-                      <Box marginTop={1}>
-                        <Button key={`edit-reply:${f.n}`} onPress={fill(`walk-pr: edit reply ${f.n}: `)}>
-                          Edit reply
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-                  {f.thread && (
-                    <Box gap={1} marginTop={1}>
-                      <Button key={`thread:${f.n}`} onPress={send(`walk-pr: show thread ${f.n}`)}>
-                        View reply
-                      </Button>
-                      {f.reply && (
-                        <Button key={`reply:${f.n}`} variant="primary" onPress={send(`walk-pr: reply finding ${f.n}`)}>
-                          Post reply
-                        </Button>
-                      )}
-                      {!f.thread.isResolved && (
-                        <Button key={`resolve:${f.n}`} onPress={send(`walk-pr: resolve finding ${f.n}`)}>
-                          Resolve
-                        </Button>
-                      )}
-                    </Box>
-                  )}
-                  {closed && f.posted && !f.raisedBy && !f.options && <Box marginTop={1}>{decisionChip(f.decision)}</Box>}
-                  {closed && !f.posted && !f.raisedBy && !f.options && !criterion && (
-                    <Box gap={1} marginTop={1}>
-                      <Button
-                        key={`raise:${f.n}`}
-                        variant={f.decision === 'raise' ? 'primary' : 'secondary'}
-                        onPress={decide(f.n, 'raise')}
-                      >
-                        {f.decision === 'raise' ? `✓ ${raiseLabel}` : raiseLabel}
-                      </Button>
-                      <Button
-                        key={`drop:${f.n}`}
-                        variant={f.decision === 'drop' ? 'primary' : 'secondary'}
-                        onPress={decide(f.n, 'drop')}
-                      >
-                        {f.decision === 'drop' ? `✓ ${dropLabel}` : dropLabel}
-                      </Button>
-                    </Box>
-                  )}
-                  {!closed && (
-                  <Box gap={1} marginTop={1}>
-                    {!f.raisedBy && !f.options && !criterion && (
-                      <Button
-                        key={`raise:${f.n}`}
-                        variant={f.decision === 'raise' ? 'primary' : 'secondary'}
-                        onPress={decide(f.n, 'raise')}
-                      >
-                        {f.decision === 'raise' ? `✓ ${raiseLabel}` : raiseLabel}
-                      </Button>
-                    )}
-                    {!f.raisedBy && !f.options && !criterion && (
-                      <Button
-                        key={`drop:${f.n}`}
-                        variant={f.decision === 'drop' ? 'primary' : 'secondary'}
-                        onPress={decide(f.n, 'drop')}
-                      >
-                        {f.decision === 'drop' ? `✓ ${dropLabel}` : dropLabel}
-                      </Button>
-                    )}
-                    {criterion && isPlanOpen && (
-                      <Button key={`edit-criterion:${f.n}`} onPress={fill(`walk-pr: edit criterion ${f.n}: `)}>
-                        Edit
-                      </Button>
-                    )}
-                    {criterion && isPlanOpen && (
-                      <Button
-                        key={`drop-criterion:${f.n}`}
-                        variant={f.decision === 'drop' ? 'primary' : 'secondary'}
-                        onPress={decide(f.n, f.decision === 'drop' ? 'later' : 'drop')}
-                      >
-                        {f.decision === 'drop' ? '✓ Drop' : 'Drop'}
-                      </Button>
-                    )}
-                    <Button key={`explain:${f.n}`} onPress={send(`walk-pr: explain finding ${f.n}`)}>
-                      Explain more
-                    </Button>
-                  </Box>
-                  )}
-                </Box>
-              )
-            }
-            const criteria = state.findings.filter(isCriterion)
-            const decisions = state.findings.filter(f => f.options)
-            const others = state.findings.filter(f => !isCriterion(f) && !f.options)
-            const section = (id: 'criteria' | 'decisions', title: string, list: Tour['findings']) =>
-              list.length > 0 && (
-                <Box key={`section:${id}`} flexDirection="column">
-                  <Box>
-                    <Button key={`toggle:${id}`} onPress={toggle(id)}>
-                      {`${open[id] ? '▾' : '▸'} ${title}`}
-                    </Button>
-                  </Box>
-                  {open[id] && hereFirst(list).map(card)}
-                </Box>
-              )
-            const othersTitle = isBuild
-              ? 'FINDINGS'
-              : closed
-                ? 'FINDINGS'
-                : state.isFinished
-                  ? 'FINDINGS · raised ones go into the review'
-                  : 'CONCERNS'
-
-            return (
-              <Box flexDirection="column" gap={1}>
-                {section('criteria', `CRITERIA · ${criteria.length}`, criteria)}
-                {section('decisions', `DECISIONS · ${undecided.length} open of ${decisions.length}`, decisions)}
-                {others.length > 0 && (
-                  <Box flexDirection="column">
-                    <Text dimColor bold>{othersTitle}</Text>
-                    {hereFirst(others).map(card)}
-                  </Box>
-                )}
-              </Box>
-            )
-        })()}
+        {state.findings.length > 0 && findingsBlock('rest')}
 
         {state.prompts.length > 0 && (
           <Box flexDirection="column">

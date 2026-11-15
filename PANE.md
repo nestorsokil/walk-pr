@@ -44,7 +44,8 @@ not verified (`inconclusive`), with a not-met one counted as severe on its stage
 `verify` line is drawn as plain text ("Proof: ...") with no Verify button, and until the run
 starts it has Edit (fills the composer with `walk-pr: edit criterion <n>: `) and Drop (a
 pending `drop`, or `later` when pressed again); criteria and decisions each sit in a
-section that opens and closes with a click on its heading and starts closed; the
+section that opens and closes with a click on its heading and starts closed; the criteria
+section sits above the stages in an outlined box, the decisions section below them; the
 finish draws Run, Run in VS Code, Revise plan (fills the composer with
 `walk-pr: revise plan: `) and Stop here.
 

@@ -164,15 +164,15 @@ before the next stage starts.
 7. **Criteria become findings.** Each criterion is a finding with `label: criterion`, no
    `options`, `text` = the criterion, `where` = the proof's file, or `local run`, or `after
    deploy`, `verify` = the proof as one imperative line, decision `later`, attached to the
-   Criteria stage. A criterion counts in no stage's `concerns`. The pane shows the proof as
-   text, with Edit and Drop until the run starts.
+   first stage whose commits serve it. A criterion counts in no stage's `concerns`. The
+   pane lists the criteria in its own Criteria section, with the proof as text and with
+   Edit and Drop until the run starts. There is no Criteria stage.
 8. **Decisions become findings.** Each decision is a finding with `label: decision`,
    `options`, no `chosen`, `where` = the stage name and the file the choice lands in, and
    `text` = the question in one sentence. Attach it to the stage it reshapes first. A stage
    downstream of an open decision is planned for the recommended option and says so in one
    sentence; it is re-planned when the reader picks otherwise.
-9. **Stages and roles** as the tour's step 6: Problem and Solution first, then one stage
-   with the role `Criteria`, then the concept
+9. **Stages and roles** as the tour's step 6: Problem and Solution first, then the concept
    stages with `Mechanism`, `Boundary`, `Data`, `Rollout`, `Risk`, `Cleanup`; names of two to
    four words the reader can repeat; colours by role; up to five contextual prompts per
    stage.
@@ -200,8 +200,8 @@ Then wait, as the tour does.
 
 As the tour's phases 3 to 5, with the plan file as the source instead of a diff:
 
-- The Criteria stage comes after the Approach and holds three things, with no other prose:
-  - the criteria as a Markdown table: number, criterion, proof;
+- The criteria have no stage. The pane's Criteria section is where the reader reads, edits
+  and drops them. The Approach stage message ends with two things from the plan:
   - the dimension table: dimension, answer;
   - the independent read as one line of counts ("Independent read: 11 items; 7 already
     covered, 2 new criteria, 1 new decision, 1 dropped"), then each dropped item with its
@@ -232,8 +232,8 @@ As the tour's phases 3 to 5, with the plan file as the source instead of a diff:
 
 As the tour's section of the same name, with these differences:
 
-- A stage's `summary` says what will be built, not what a diff contains. The Criteria
-  stage's summary is the count of criteria and how they are proven, in one or two sentences.
+- A stage's `summary` says what will be built, not what a diff contains. It names the
+  numbers of the criteria the stage serves and does not repeat their text.
 - Rewrite a stage's `summary` and `diagram`, and send `isAcked: false`, after each of these:
   a decision pick or a correction that re-plans the stage, a deviation in the run that
   changes what the stage built, and a polish fix that changes its behaviour.
