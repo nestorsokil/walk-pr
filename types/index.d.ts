@@ -43,7 +43,10 @@ export type Finding = {
 export type Verification = { state: 'running' | 'confirmed' | 'refuted' | 'inconclusive'; note?: string }
 
 // A click in the pane until the skill has been told about it; sent ones are dropped on the next set.
-export type PendingDecision = { n: number; decision?: 'raise' | 'drop'; chosen?: number; isSent: boolean }
+export type PendingDecision = { n: number; decision?: Decision; chosen?: number; isSent: boolean }
+
+// Which collapsible sections of the pane are open; absent means closed.
+export type Sections = { criteria?: boolean; decisions?: boolean }
 
 export type Tour = {
   mode?: Mode
@@ -78,6 +81,6 @@ export type Diagram = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'walk-pr': { tour: Tour | null; missing: string[] }
+    'walk-pr': { tour: Tour | null; missing: string[]; sections: Sections }
   }
 }

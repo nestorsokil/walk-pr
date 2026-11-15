@@ -1,12 +1,14 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { Area, PendingDecision, Tour } from '../types'
+import type { Area, Decision, PendingDecision, Sections, Tour } from '../types'
 
 const PANE = 'walk-pr'
 const TITLE = 'PR tour'
 const tour = atom({ plugin: 'walk-pr', key: 'tour' } as const, null as Tour | null)
 const missing = atom({ plugin: 'walk-pr', key: 'missing' } as const, [] as string[])
+// which collapsible sections of the pane are open; both start closed
+const sections = atom({ plugin: 'walk-pr', key: 'sections' } as const, {} as Sections)
 
 const REQUIRED: ReadonlyArray<readonly [string, string]> = [
   ['gh', 'gh (GitHub CLI): reads and reviews PRs'],
@@ -348,7 +350,11 @@ export const register: Register = (on, options) => {
       ) : (
         <Text backgroundColor={props.color} color="inverseText"> {props.label} </Text>
       )
-    const decide = (n: number, decision: 'raise' | 'drop') => () => {
+    const open = await read($, sections)
+    const toggle = (id: 'criteria' | 'decisions') => () => {
+      void update($, sections, s => ({ ...s, [id]: !s[id] }))
+    }
+    const decide = (n: number, decision: Decision) => () => {
       void update($, tour, t =>
         t
           ? {
@@ -450,6 +456,8 @@ export const register: Register = (on, options) => {
       .filter(f => f.posted || f.decision === 'raise')
       .every(f => f.resolution === 'fixed' || f.thread?.isResolved)
     const isBuild = state.mode === 'build'
+    // criteria can change until the run starts
+    const isPlanOpen = !state.stages.some(s => s.state === 'running' || s.state === 'blocked' || (s.commits ?? []).length > 0)
     const undecided = state.findings.filter(f => f.options && f.chosen === undefined)
     // in build mode Raise means fix it and Drop means leave it
     const raiseLabel = isBuild ? 'Fix' : 'Raise'
@@ -594,22 +602,9 @@ export const register: Register = (on, options) => {
           </Box>
         )}
 
-        {state.findings.length > 0 && (
-          <Box flexDirection="column">
-            <Text dimColor bold>
-              {isBuild
-                ? closed
-                  ? 'DECISIONS AND FINDINGS'
-                  : state.isFinished
-                    ? 'DECISIONS · every one needs a pick before the run'
-                    : 'DECISIONS'
-                : closed
-                  ? 'FINDINGS'
-                  : state.isFinished
-                    ? 'FINDINGS · raised ones go into the review'
-                    : 'CONCERNS'}
-            </Text>
-            {[...state.findings].sort((a, b) => Number(isHere(b)) - Number(isHere(a))).map(f => {
+        {state.findings.length > 0 && (() => {
+            const hereFirst = (list: Tour['findings']) => [...list].sort((a, b) => Number(isHere(b)) - Number(isHere(a)))
+            const card = (f: Tour['findings'][number]) => {
               const criterion = isCriterion(f)
               const proofState = criterion ? f.verification?.state : undefined
               const tone = f.label === 'issue' ? 'error' : f.label === 'pre-existing' ? 'inactive' : f.options || criterion ? 'claude' : 'warning'
@@ -651,7 +646,8 @@ export const register: Register = (on, options) => {
                     <Text dimColor italic>{f.where}</Text>
                   )}
                   {f.verification?.note && <Text dimColor italic>{f.verification.note}</Text>}
-                  {f.verify && !f.options && f.verification?.state !== 'running' && (
+                  {f.verify && criterion && <Text dimColor>Proof: {f.verify}</Text>}
+                  {f.verify && !f.options && !criterion && f.verification?.state !== 'running' && (
                     <Box gap={1} marginTop={1} alignItems="center">
                       <Button key={`verify:${f.n}`} onPress={send(`walk-pr: verify finding ${f.n}`)}>
                         {f.verification ? 'Verify again' : 'Verify'}
@@ -758,6 +754,20 @@ export const register: Register = (on, options) => {
                         {f.decision === 'drop' ? `✓ ${dropLabel}` : dropLabel}
                       </Button>
                     )}
+                    {criterion && isPlanOpen && (
+                      <Button key={`edit-criterion:${f.n}`} onPress={fill(`walk-pr: edit criterion ${f.n}: `)}>
+                        Edit
+                      </Button>
+                    )}
+                    {criterion && isPlanOpen && (
+                      <Button
+                        key={`drop-criterion:${f.n}`}
+                        variant={f.decision === 'drop' ? 'primary' : 'secondary'}
+                        onPress={decide(f.n, f.decision === 'drop' ? 'later' : 'drop')}
+                      >
+                        {f.decision === 'drop' ? '✓ Drop' : 'Drop'}
+                      </Button>
+                    )}
                     <Button key={`explain:${f.n}`} onPress={send(`walk-pr: explain finding ${f.n}`)}>
                       Explain more
                     </Button>
@@ -765,9 +775,42 @@ export const register: Register = (on, options) => {
                   )}
                 </Box>
               )
-            })}
-          </Box>
-        )}
+            }
+            const criteria = state.findings.filter(isCriterion)
+            const decisions = state.findings.filter(f => f.options)
+            const others = state.findings.filter(f => !isCriterion(f) && !f.options)
+            const section = (id: 'criteria' | 'decisions', title: string, list: Tour['findings']) =>
+              list.length > 0 && (
+                <Box key={`section:${id}`} flexDirection="column">
+                  <Box>
+                    <Button key={`toggle:${id}`} onPress={toggle(id)}>
+                      {`${open[id] ? '▾' : '▸'} ${title}`}
+                    </Button>
+                  </Box>
+                  {open[id] && hereFirst(list).map(card)}
+                </Box>
+              )
+            const othersTitle = isBuild
+              ? 'FINDINGS'
+              : closed
+                ? 'FINDINGS'
+                : state.isFinished
+                  ? 'FINDINGS · raised ones go into the review'
+                  : 'CONCERNS'
+
+            return (
+              <Box flexDirection="column" gap={1}>
+                {section('criteria', `CRITERIA · ${criteria.length}`, criteria)}
+                {section('decisions', `DECISIONS · ${undecided.length} open of ${decisions.length}`, decisions)}
+                {others.length > 0 && (
+                  <Box flexDirection="column">
+                    <Text dimColor bold>{othersTitle}</Text>
+                    {hereFirst(others).map(card)}
+                  </Box>
+                )}
+              </Box>
+            )
+        })()}
 
         {state.prompts.length > 0 && (
           <Box flexDirection="column">

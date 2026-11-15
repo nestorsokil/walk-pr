@@ -164,7 +164,8 @@ before the next stage starts.
 7. **Criteria become findings.** Each criterion is a finding with `label: criterion`, no
    `options`, `text` = the criterion, `where` = the proof's file, or `local run`, or `after
    deploy`, `verify` = the proof as one imperative line, decision `later`, attached to the
-   Criteria stage. A criterion counts in no stage's `concerns`.
+   Criteria stage. A criterion counts in no stage's `concerns`. The pane shows the proof as
+   text, with Edit and Drop until the run starts.
 8. **Decisions become findings.** Each decision is a finding with `label: decision`,
    `options`, no `chosen`, `where` = the stage name and the file the choice lands in, and
    `text` = the question in one sentence. Attach it to the stage it reshapes first. A stage
@@ -421,6 +422,12 @@ The tour's actions apply (`next`, `go to`, `finish`, `finding <n> ...`, `explain
 - `done` — Phase 6 step 6 during the plan; after the run, `set` with the outcome as it
   stands.
 - `review round` — Phase 8 step 6 once more, with the next round number.
-- `verify finding <n>` on a criterion — Phase 8 step 2 for that criterion alone. Before the
-  run has built it there is nothing to prove: say so in one line.
+- `edit criterion <n>: <instruction>` — rewrite that criterion as instructed, and its proof
+  when the change needs one. Re-plan the commits that serve it, `set`, confirm in one line.
+- `finding <n> drop` on a criterion — remove it from the plan and from the next `set`,
+  re-plan the commits that served only it, and say in one line what the plan no longer
+  proves. `finding <n> later` before that `set` keeps it. The last criterion cannot be
+  dropped: say so.
+- `verify finding <n>` on a criterion, typed — Phase 8 step 2 for that criterion alone.
+  Before the run has built the criterion there is nothing to prove: say so in one line.
 - `show plan` — print the plan file's criteria, stage list and decisions as they stand.

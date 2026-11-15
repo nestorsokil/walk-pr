@@ -29,7 +29,11 @@ as one button each with the recommended one primary until a pick; Raise and Drop
 and Skip; stages may be `running` or `blocked` and list their `commits`; `plan.file` adds an
 Open plan button; a finding with `label: criterion` is an acceptance criterion, drawn with
 no Fix and Skip, and its `verification` reads proven (`confirmed`), not met (`refuted`) or
-not verified (`inconclusive`), with a not-met one counted as severe on its stage; the
+not verified (`inconclusive`), with a not-met one counted as severe on its stage; its
+`verify` line is drawn as plain text ("Proof: ...") with no Verify button, and until the run
+starts it has Edit (fills the composer with `walk-pr: edit criterion <n>: `) and Drop (a
+pending `drop`, or `later` when pressed again); criteria and decisions each sit in a
+section that opens and closes with a click on its heading and starts closed; the
 finish draws Run, Run in VS Code, Revise plan (fills the composer with
 `walk-pr: revise plan: `) and Stop here.
 
