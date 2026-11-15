@@ -31,7 +31,9 @@ with `Image` on a terminal; the `alt` text when neither draws), Explain more
 (`walk-pr: go to <stage name>`) and Ack. Ack is held in the pane and rides along on the next
 message as `(stages: <name> ack, <name> unack)`, joined to the findings suffix with `; `. A
 `set` keeps a stage's ack unless it sends `isAcked` for that stage. At the finish the pane
-names the stages not acked.
+names the stages not acked. The mark before a stage's name shows the ack (`✓` or `○`); a
+build run shows `…` on the running stage and `!` on a blocked one. There is no Next button
+and no current-stage mark; `walk-pr: next` is still accepted when typed.
 
 Build mode (`mode: "build"`, from `skills/build/SKILL.md`): findings carry `options`, drawn
 as one button each with the recommended one primary until a pick; Raise and Drop read Fix

@@ -199,8 +199,9 @@ One message: a short overview, then the menu. With the pane tool (`mcp__walk-pr_
 call it with the full tour, `url` = the PR page, `author`, `links` and `size` for a PR target, `complexity`, every
 stage `pending` with its `severe` and `minor` counts and its `summary` and `diagram` (see
 "Stage rows: summary, diagram, ack"), every finding from the review with its
-`stage` and decision `later`, `prompts` empty, and `nextLabel` set to the Problem stage's name,
-so the pane's Next button starts the tour. Keep `url`, `author`, `links`, `size` and `complexity` in every later `set`. With `show_widget`
+`stage` and decision `later`, and `prompts` empty. The pane has no Next button and marks no
+current stage: the reader opens the stage rows in any order, acks them, and presses Finish.
+Keep `url`, `author`, `links`, `size` and `complexity` in every later `set`. With `show_widget`
 only: the menu widget (widgets.md, template 1). With neither: a text block plus AskUserQuestion
 with **Start from Problem**, **Pick stages**, **Finish now**.
 
@@ -420,7 +421,9 @@ these rows and never open a stage in the chat. So every stage carries its conten
   changes for a user or operator, and the one thing to check or remember. Same voice as the
   overview card: product words first, at most one identifier in backticks. No finding text;
   the chips and the findings list carry the findings.
-- **`diagram`**: one per stage whenever "Which diagram" picks one for that stage. Write a
+- **`diagram`**: one per stage. Problem and Solution always have one. A concept stage has
+  one unless "Which diagram" finds nothing to draw for it. Write the files before the first
+  `set`, not when the reader reaches the stage. Write a
   standalone SVG file to `<scratchpad>/walk-pr-<id>-<stage>.svg` and pass
   `diagram: { svg: <absolute path>, alt: <one line> }`. The pane draws the file as an image,
   so the SVG holds everything it needs:
@@ -449,6 +452,10 @@ these rows and never open a stage in the chat. So every stage carries its conten
   5 describe. A stage shown in the chat is not acked by that; only the Ack click acks it.
 - **Stages not seen** are the stages without an ack, whatever their `state`. The finish
   counts and names those.
+- **No walk order.** The reader goes through the rows in the pane, so the chat does not
+  lead them from stage to stage. A stage message is written only for Explain more, a
+  contextual prompt or a typed question. `next` still works when typed. The pane's mark
+  per row shows the ack, not the `state`; `nextLabel` is not drawn.
 
 Then end the turn and wait. A click arrives as the next user message: a `walk-pr: ...` line, or
 the text of a contextual prompt. Any other message is a question on the current stage or a plan

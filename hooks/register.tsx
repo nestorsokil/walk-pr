@@ -134,7 +134,7 @@ export const register: Register = (on, options) => {
                     },
                     diagram: {
                       type: 'object',
-                      description: 'this stage\'s own diagram, shown under the summary. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
+                      description: 'this stage\'s own diagram, shown under the summary. Send one for every stage that has a path, a boundary or a before and after to draw; write the file first, by hand, as the skill\'s "Stage rows" section says. svg is an absolute path to a standalone .svg file, drawn in the desktop pane; file is a PNG for a terminal',
                       properties: {
                         svg: { type: 'string', description: 'absolute path; standalone SVG with a viewBox, explicit colours, no foreignObject, no script, no CSS variables, at most 131072 characters' },
                         file: { type: 'string', description: 'absolute path to a PNG' },
@@ -661,10 +661,11 @@ export const register: Register = (on, options) => {
         <Box flexDirection="column">
           <Text dimColor bold>STAGES</Text>
           {state.stages.map(s => {
-            const isCurrent = s.state === 'current' || s.state === 'running' || s.state === 'blocked'
-            const isPast = s.state === 'done' || s.state === 'skipped'
-            const mark = { current: '▶', running: '…', blocked: '!', done: '✓', skipped: '–', pending: '○' }[s.state]
-            const markColor = s.state === 'blocked' ? 'error' : s.state === 'running' ? 'warning' : isCurrent ? 'claude' : s.state === 'done' ? 'success' : 'inactive'
+            const isCurrent = s.state === 'running' || s.state === 'blocked'
+            const isPast = Boolean(s.isAcked)
+            // the mark shows the ack; only a build run in progress overrides it
+            const mark = s.state === 'running' ? '…' : s.state === 'blocked' ? '!' : s.isAcked ? '✓' : '○'
+            const markColor = s.state === 'blocked' ? 'error' : s.state === 'running' ? 'warning' : s.isAcked ? 'success' : 'inactive'
             const counts = countsOf(s.name)
             return (
               <Box key={`row:${s.name}`} flexDirection="column">
@@ -676,7 +677,6 @@ export const register: Register = (on, options) => {
                       {`${isStageOpen(s.name) ? '▾' : '▸'} ${label(s)}`}
                     </Button>
                   </Box>
-                  {s.isAcked && <Chip color="success" label="acked" />}
                   {s.state === 'blocked' && <Chip color="error" label="waiting on a decision" />}
                   {counts.fixed > 0 && <Chip color="success" label={`${counts.fixed} fixed`} />}
                   {counts.severe > 0 && <Chip color="error" label={`${counts.severe} severe`} />}
@@ -1032,13 +1032,8 @@ export const register: Register = (on, options) => {
             </Button>
           )}
           {!state.isFinished && (
-            <Button key="next" variant="primary" hotkey="n" onPress={send('walk-pr: next')}>
-              {state.nextLabel ? `Next: ${state.nextLabel}` : 'Next'}
-            </Button>
-          )}
-          {!state.isFinished && (
-            <Button key="finish" hotkey="f" onPress={send('walk-pr: finish')}>
-              Finish now
+            <Button key="finish" variant="primary" hotkey="f" onPress={send('walk-pr: finish')}>
+              Finish
             </Button>
           )}
         </Box>
