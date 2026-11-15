@@ -49,6 +49,25 @@ Run the session on the most capable model available. Code and analysis never go 
 `opus`. A subagent never decides: a question it cannot answer from its brief comes back to
 the main session.
 
+## Depth by complexity
+
+Rate the complexity right after step 3 of the gather, by step 5's thresholds, so the
+independent read can be skipped. The rating sets how much of the process runs:
+
+| | easy | medium, complex |
+|---|---|---|
+| Independent read | skipped | one subagent |
+| Criteria | 1 to 3 | 3 to 10 |
+| Dimension table | the rows the change touches; the others in one line as `not touched` | every row, each with its answer |
+| Implementer | one subagent for the whole run; the main session checks once, at the end | one subagent per stage |
+| Proof of the criteria | the main session runs each proof itself, the break-and-fail check included | a fresh subagent |
+| Polish round | one | one |
+
+A change that outgrows its rating, in the plan tour or in the run (a second concept, a
+changed contract, well over the line threshold), is rated again. Say so in one line; the
+steps not yet done follow the new rating, and an independent read that was skipped runs
+before the next stage starts.
+
 ## Phase 1: Gather
 
 1. **Resolve the ticket.** An issue ID or URL: read it through the tracker's tools, with its
@@ -69,7 +88,7 @@ the main session.
    commands, generators, registries for names and constants, API conventions, comment rules. Read how the
    nearest sibling of the thing to build is done; the plan copies its shape unless there is
    a reason not to.
-4. **Independent read.** Spawn one fresh subagent (no conversation context; the brief is
+4. **Independent read.** Skipped for an easy change. Spawn one fresh subagent (no conversation context; the brief is
    all it knows) and go on with steps 5 and 6 while it works. Its brief: the ticket text
    verbatim, the repository path, the entry points from step 3, and these instructions:
    read the code as it is and design nothing; return three lists, each item one sentence
@@ -95,7 +114,7 @@ the main session.
      tour's Problem-stage terms.
    - **Approach**: the mechanism at component level, the boundary it moves or adds, what it
      deliberately does not do, the rollout (flag, migration, compatibility).
-   - **Criteria**: 3 to 10 acceptance criteria. Each is one sentence on one behaviour that
+   - **Criteria**: 3 to 10 acceptance criteria, 1 to 3 for an easy change. Each is one sentence on one behaviour that
      a user, an operator or a caller can observe, written so that a run shows it true or
      false ("a channel saved with a mistyped key is rejected with a 400", not "validation
      is improved"). A behaviour that must stay as it is counts as a criterion. Each has a
