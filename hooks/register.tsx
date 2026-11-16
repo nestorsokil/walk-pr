@@ -468,6 +468,7 @@ export const register: Register = (on, options) => {
         <Box flexDirection="column" paddingLeft={4} marginBottom={1} gap={1}>
           {!s.summary ? <Text dimColor>No summary yet.</Text> : !onTerminal && Markdown ? <Markdown text={s.summary} /> : <Text>{s.summary}</Text>}
           {diagram}
+          {findingsBlock({ stage: s.name })}
           <Box gap={1} alignItems="center">
             <Box borderStyle="round" borderColor="success" padding={0}>
               <Button key={`ack:${s.name}`} onPress={ack(s.name, !s.isAcked)}>
@@ -618,7 +619,11 @@ export const register: Register = (on, options) => {
     const decisionChip = (d: string) =>
       d === 'raise' ? <Chip color="error" label="raised" /> : d === 'drop' ? <Chip color="inactive" label="dropped" /> : <Chip color="warning" label={d} />
 
-    const findingsBlock = (part: 'criteria' | 'rest') => {
+    // a finding with a stage is drawn inside that stage's row; a tour's finish lists all of them for the review
+    const inStages = isBuild || !state.isFinished
+    const stageNames = new Set(state.stages.map(s => s.name))
+    const isPlaced = (f: { label: string; stage?: string }) => !isCriterion(f) && f.stage !== undefined && stageNames.has(f.stage)
+    const findingsBlock = (part: 'criteria' | 'rest' | { stage: string }) => {
         const hereFirst = (list: Tour['findings']) => [...list].sort((a, b) => Number(isHere(b)) - Number(isHere(a)))
         const card = (f: Tour['findings'][number]) => {
           const criterion = isCriterion(f)
@@ -793,8 +798,14 @@ export const register: Register = (on, options) => {
           )
         }
         const criteria = state.findings.filter(isCriterion)
-        const decisions = state.findings.filter(f => f.options)
-        const others = state.findings.filter(f => !isCriterion(f) && !f.options)
+        if (typeof part === 'object') {
+          const mine = inStages ? state.findings.filter(f => isPlaced(f) && f.stage === part.stage) : []
+
+          return mine.length > 0 && <Box flexDirection="column">{mine.map(card)}</Box>
+        }
+        const loose = state.findings.filter(f => !isCriterion(f) && !(inStages && isPlaced(f)))
+        const decisions = loose.filter(f => f.options)
+        const others = loose.filter(f => !f.options)
         const section = (id: 'criteria' | 'decisions', title: string, list: Tour['findings']) =>
           list.length > 0 && (
             <Box key={`section:${id}`} flexDirection="column">
@@ -826,7 +837,7 @@ export const register: Register = (on, options) => {
 
         return (
           <Box flexDirection="column" gap={1}>
-            {section('decisions', `DECISIONS · ${undecided.length} open of ${decisions.length}`, decisions)}
+            {section('decisions', `DECISIONS · ${decisions.filter(f => f.chosen === undefined).length} open of ${decisions.length}`, decisions)}
             {others.length > 0 && (
               <Box flexDirection="column">
                 <Text dimColor bold>{othersTitle}</Text>

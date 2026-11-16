@@ -523,6 +523,10 @@ these rows and never open a stage in the chat. So every stage carries its conten
   reader did not ack.
 - **Explain more** sends `go to <stage>`: the full stage message in the chat, as Phases 3 to
   5 describe. A stage shown in the chat is not acked by that; only the Ack click acks it.
+- **Findings sit in their stage's row.** The open row shows the cards of the findings whose
+  `stage` is that stage, and the reader decides on them there. So every finding carries a
+  `stage` that exists; a finding with none shows in a loose list under the stages. Before
+  the finish, the list under the stages holds only those loose ones.
 - **Stages not seen** are the stages without an ack, whatever their `state`. The finish
   counts and names those.
 - **No walk order.** The reader goes through the rows in the pane, so the chat does not

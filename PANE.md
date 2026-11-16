@@ -25,6 +25,10 @@ the next message, as the suffix `(findings: 1 raise, 3 option 2)` on a click or 
 context on a typed message; after that the next `set` call is the record.
 
 Stage rows, in both modes: a click on a stage's name opens and closes it; rows start closed.
+An open row also holds the cards of the findings whose `stage` is that stage, decisions
+included, with their buttons; the list under the stages keeps only the findings with no
+stage. A tour's finish is the exception: it lists every finding under the stages, for the
+review. Criteria stay in their own section.
 An open row shows the stage's `summary` (Markdown), its `diagram` (`svg`, a path to a
 standalone SVG file, drawn with the `Svg` element and `isInteractive` off the terminal, so
 CSS and SMIL animation and hover run and script does not; `file`, a PNG, drawn
