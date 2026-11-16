@@ -1,6 +1,6 @@
 {
   "name": "walk-pr",
-  "version": "0.22.2",
+  "version": "0.22.3",
   "description": "Stage-by-stage guided PR tour with a one-click side pane: problem and approach diagrams, concept stages, findings you decide on, one review posted at the end. The same pane plans and implements a change: acceptance criteria with proofs, decisions with options, commit-by-commit run, draft PR. A third skill runs review rounds on any open PR",
   "author": {
     "name": "Nestor Sokil"

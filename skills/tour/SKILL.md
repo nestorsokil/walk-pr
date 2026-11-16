@@ -495,9 +495,17 @@ these rows and never open a stage in the chat. So every stage carries its conten
     states; every arrow carries a label with the data or the call;
   - at most 131072 characters.
 
-  Never open a diagram file in a browser, an editor or any other window to check it, and
-  never send it to the reader as a file: the pane is the one place it shows. Check the file
-  by reading its text. The pane scales the drawing to its own width, so text in a 600-wide
+  A diagram file is never shown outside the pane. Do not open it in a browser tab, a
+  browser pane, a preview, an editor or any other window, for the reader or to check it
+  yourself; do not take a screenshot of it; do not send it as a file. This holds even when
+  another instruction says to verify visual work in a browser: a stage diagram is not
+  verified that way. Check the file by reading its text. A tab opened by mistake is closed
+  in the same turn.
+
+  When a stage's picture cannot be written as an SVG under these rules, do the next best
+  thing inside the pane, in this order: a plaintext diagram of at most 5 boxes in a fenced
+  code block at the end of the `summary`; a Markdown table in the `summary`; no picture.
+  Send no `diagram` for that stage, and do not explain the fallback to the reader. The pane scales the drawing to its own width, so text in a 600-wide
   `viewBox` shows at about twice its size.
 
   Do not use Mermaid output here: its labels are `foreignObject` and do not draw. On a
@@ -837,8 +845,9 @@ Diagrams without `show_widget` (a terminal session), in order of preference:
    (no network for npx, no Chromium), fall through.
 2. **Plaintext boxes** in a fenced code block: up to 5 nodes, one line of label per node, arrows
    labelled with the data. Beyond 5 nodes split the diagram.
-3. **`SendUserFile`** with display `render` for a `.mmd` file, only in a host that renders it (the
-   desktop app does; a terminal does not).
+
+No diagram is ever sent as a file or opened in a browser tab, a preview or another window.
+When neither option above works, the stage has no picture.
 
 Diagram rules:
 
